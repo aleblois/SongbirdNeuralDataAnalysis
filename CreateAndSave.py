@@ -23,17 +23,18 @@ os.chdir(os.path.expanduser(today))
 
 #Create DataFrame (LFP should be indicated by the subject) and SpikeTime files
 res=[]
+LFP = input("Enter LFP number:")
 for i in range(n_spike_trains):
     Chprov = data.list_units[i].annotations["id"]
     Chprov2 = Chprov.split("#")[0]
     Ch = Chprov2.split("ch")[1]                     
     Label = Chprov.split("#")[1]
-    LFP = input("Enter LFP number:")
     res += [[int(Ch), int(Label), int(LFP)]]
     df = pandas.DataFrame(data=res, columns= ["Channel", "Label", "LFP number"])
-    print(df)
     np.savetxt(Chprov+".txt", data_seg.spiketrains[i].as_array(), header="Spiketimes of: "+str(Chprov)) #Creates files with the Spiketimes.
-    
+
+print(df)
+
 #Save dataframe with Channels/Labels/LFPnumbers
 file = open("Channels_Label_LFP.txt", "w+")
 file.write(str(df))
@@ -53,8 +54,6 @@ for i in range(n_analog_signals):
     antime = str(str(data.children_recur[i].t_start) + " to " + str(data.children_recur[i].t_stop))
     an+=[['Channel Name: ' + anname, 'Lenght: '+ anlenght, 'Unit: ' + anunit, 'Sampling Rate: ' + ansampling_rate, 'Duration: ' + antime]]
     
-print(an)   
-
 spk=['Number of SpikeTrains: ' + str(n_spike_trains)]    
 for i in range(n_analog_signals, n_spike_trains + n_analog_signals):
     spkid = str(data.children_recur[i].annotations['id'])
@@ -64,14 +63,11 @@ for i in range(n_analog_signals, n_spike_trains + n_analog_signals):
     spkunit = str(data.children_recur[i].units).split(" ")[1]
     spk+=[['Channel Id: ' + spkid, 'Created on: ' + spkcreated, 'Name: ' + spkname, 'Size: '+ spksize, 'Unit: ' + spkunit]]
 
-print(spk)    
-
 final = an + spk
 
 with open('summary.txt', 'w+') as f:
     for item in final:
         f.write("%s\n" % item)
 f.close()        
-
-       
-print("All files were created!")
+    
+print('\n'+'All files were created!')
