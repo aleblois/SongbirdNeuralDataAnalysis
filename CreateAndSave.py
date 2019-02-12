@@ -42,7 +42,8 @@ file.close()
 
 #Create and Save Binary/.NPY files of Analog signals
 for i in range(n_analog_signals):
-        np.save(data_seg.analogsignals[i].name.split(" ")[2], data_seg.analogsignals[i].as_array())
+    temp=data_seg.analogsignals[i].name.split(" ")[2][1:-1]
+    np.save(temp, data_seg.analogsignals[i].as_array())
         
 #Create and Save Summary about the File
 an=['File of origin: ' + data.file_origin, 'Number of AnalogSignals: ' + str(n_analog_signals)]
@@ -67,7 +68,7 @@ final = an + spk
 
 with open('summary.txt', 'w+') as f:
     for item in final:
-        f.write("%s\n" % item)
+        f.write("%s\n" % "".join(item))
 f.close()        
     
 print('\n'+'All files were created!')
