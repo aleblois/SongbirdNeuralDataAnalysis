@@ -46,29 +46,29 @@ for i in range(n_analog_signals):
     np.save(temp, data_seg.analogsignals[i].as_array())
         
 #Create and Save Summary about the File
-an=['File of origin: ' + data.file_origin, 'Number of AnalogSignals: ' + str(n_analog_signals)]
+an=["File of origin: " + data.file_origin, "Number of AnalogSignals: " + str(n_analog_signals)]
 for i in range(n_analog_signals):
     anlenght= str(data.children_recur[i].size)
     anunit=str(data.children_recur[i].units).split(" ")[1]
     anname=str(data.children_recur[i].name)
     ansampling_rate=str(data.children_recur[i].sampling_rate)
     antime = str(str(data.children_recur[i].t_start) + " to " + str(data.children_recur[i].t_stop))
-    an+=[['Channel Name: ' + anname, 'Lenght: '+ anlenght, 'Unit: ' + anunit, 'Sampling Rate: ' + ansampling_rate, 'Duration: ' + antime]]
+    an+=[["Channel Name: " + anname, "Lenght: "+ anlenght, "Unit: " + anunit, "Sampling Rate: " + ansampling_rate, "Duration: " + antime]]
     
-spk=['Number of SpikeTrains: ' + str(n_spike_trains)]    
+spk=["Number of SpikeTrains: " + str(n_spike_trains)]    
 for i in range(n_analog_signals, n_spike_trains + n_analog_signals):
-    spkid = str(data.children_recur[i].annotations['id'])
-    spkcreated = str(data.children_recur[i].annotations['comment'])
+    spkid = str(data.children_recur[i].annotations["id"])
+    spkcreated = str(data.children_recur[i].annotations["comment"])
     spkname= str(data.children_recur[i].name)
     spksize = str(data.children_recur[i].size)
     spkunit = str(data.children_recur[i].units).split(" ")[1]
-    spk+=[['Channel Id: ' + spkid, 'Created on: ' + spkcreated, 'Name: ' + spkname, 'Size: '+ spksize, 'Unit: ' + spkunit]]
+    spk+=[["Channel Id: " + spkid, "Created on: " + spkcreated, "Name: " + spkname, "Size: "+ spksize, "Unit: " + spkunit]]
 
 final = an + spk
 
-with open('summary.txt', 'w+') as f:
+with open("summary.txt", "w+") as f:
     for item in final:
         f.write("%s\n" % "".join(item))
 f.close()        
     
-print('\n'+'All files were created!')
+print("\n"+"All files were created!")
