@@ -58,12 +58,12 @@ for i in range(n_spike_trains):
 
 print("sp: This list contains " + str(n_spike_trains) + " spiketrains!")
 
-answer= str(input("Do you want to see the plots? Yes or No?" + "\n"))
-if answer == 'Yes':
+answer= input("Do you want to see the plots? [Y/n]")
+if answer.lower() == "y":
     print("Ok! Let's go!")
     #Plot of Analog Signals
     figure()
-    for i in range(data_seg.size.get('analogsignals')):
+    for i in range(data_seg.size.get("analogsignals")):
         subplot(2,1,i+1)
         plot(time,analog[i])
         xlabel("time (s)")
