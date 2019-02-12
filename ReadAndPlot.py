@@ -58,8 +58,8 @@ for i in range(n_spike_trains):
 
 print("sp: This list contains " + str(n_spike_trains) + " spiketrains!")
 
-answer= input("Do you want to see the plots? [Y/n]")
-if answer.lower() == "y":
+answer= input("Do you want to see the plots? (Y/n)")
+if answer=="" or answer.lower()[0] == "y":
     print("Ok! Let's go!")
     #Plot of Analog Signals
     figure()
