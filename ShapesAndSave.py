@@ -25,7 +25,7 @@ for i in range(n_spike_trains):
             Chprov = data.list_units[k].annotations["id"]
             Label = Chprov.split("#")[1]
             answer2 = input("Nice! The next channel is:" + str(Chprov) + ". Should I create a file for it? [Y/n]")                     
-            if answer2.lower() == "y":
+            if answer2=="" or answer2.lower()[0] == "y":
                 channel = np.loadtxt(Chprov+".txt")
                 print(Chprov)
                 print("Starting to get the spikeshapes... Grab a book or something, this might take a while!")
@@ -41,7 +41,7 @@ for i in range(n_spike_trains):
                 print("\n" + "Voilà!")   
                 np.savetxt("SpikeShape#"+Label+".txt", b, header="First column = Initial Time; Second column = Final Time; Third Column = First Spike Shape value, etc")
                 answer3= input("Do you want to see the plots? [Y/n]?")
-                if answer3.lower() == "y":
+                if answer3=="" or answer3.lower()[0] == "y":
                     print("Ok! Let's go!")
                     #Plot an example
                     window1=int(b[0][0])
@@ -74,7 +74,7 @@ for i in range(n_spike_trains):
             b1=x1[1:]    
             print("\n" + "Voilà!")   
             np.savetxt("SpikeShape#"+Label1+".txt", b1, header="First column = Initial Time; Second column = Final Time; Third Column = First Spike Shape value, etc")
-            if answer4.lower() == "y":
+            if answer4 == "" or answer4.lower()[0] == "y":
                 window1=int(b[0][0])
                 window2=int(b[0][1])
                 figure()
