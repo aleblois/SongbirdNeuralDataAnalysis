@@ -64,7 +64,7 @@ if answer=="" or answer.lower()[0] == "y":
     #Plot of Analog Signals
     figure()
     for i in range(data_seg.size.get("analogsignals")):
-        subplot(2,1,i+1)
+        subplot(n_analog_signals,1,i+1)
         plot(time,analog[i])
         xlabel("time (s)")
         title("Analog signal of: " + data_seg.analogsignals[i].name.split(" ")[2])
