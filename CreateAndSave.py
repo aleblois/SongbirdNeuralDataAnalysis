@@ -53,7 +53,7 @@ for i in range(n_analog_signals):
     anname=str(data.children_recur[i].name)
     ansampling_rate=str(data.children_recur[i].sampling_rate)
     antime = str(str(data.children_recur[i].t_start) + " to " + str(data.children_recur[i].t_stop))
-    an+=[["Channel Name: " + anname, "Lenght: "+ anlenght, "Unit: " + anunit, "Sampling Rate: " + ansampling_rate, "Duration: " + antime]]
+    an+=[["Channel Name: " + anname, "Lenght: "+ anlenght, " Unit: " + anunit, " Sampling Rate: " + ansampling_rate, " Duration: " + antime]]
     
 spk=["Number of SpikeTrains: " + str(n_spike_trains)]    
 for i in range(n_analog_signals, n_spike_trains + n_analog_signals):
@@ -62,7 +62,7 @@ for i in range(n_analog_signals, n_spike_trains + n_analog_signals):
     spkname= str(data.children_recur[i].name)
     spksize = str(data.children_recur[i].size)
     spkunit = str(data.children_recur[i].units).split(" ")[1]
-    spk+=[["Channel Id: " + spkid, "Created on: " + spkcreated, "Name: " + spkname, "Size: "+ spksize, "Unit: " + spkunit]]
+    spk+=[["Channel Id: " + spkid, " " + spkcreated, " Name: " + spkname, " Size: "+ spksize, " Unit: " + spkunit]]
 
 final = an + spk
 
