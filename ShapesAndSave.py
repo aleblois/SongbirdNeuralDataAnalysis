@@ -14,7 +14,10 @@ from CreateAndSave import *
 import os
 
 # Create and save the spikeshapes
-windowsize=150 #Define here the number of points that suit your window (to get accurately the shape of the spike)
+samplingrate=int(data.children_recur[0].sampling_rate)
+windowsize=int(samplingrate*2/1000) #Define here the number of points that suit your window (set to 2ms)
+numberLFP = int(input('Please type the number of the LFP channel'))
+numberanalogspikes = int(input('Please type the number of the SpikeAnalog'))
 
 for i in range(n_spike_trains):
     Chprov = data.list_units[i].annotations["id"]
@@ -29,11 +32,10 @@ for i in range(n_spike_trains):
                 channel = np.loadtxt(Chprov+".txt")
                 print(Chprov)
                 print("Starting to get the spikeshapes... Grab a book or something, this might take a while!")
-                a=np.array([],int) 
                 x=np.empty([1,windowsize+2],int)
                 for j in range(len(channel)):
-                    a= np.where(time >= channel[j])[0][0]
-                    analogtxt=analog[1][a:a+windowsize].reshape(1,windowsize)
+                    a= int(channel[j]*samplingrate)-57
+                    analogtxt=analog[numberLFP][a:a+windowsize].reshape(1,windowsize)
                     y = np.array([[a],[a+windowsize]], np.int32).reshape(1,2)
                     res = append(y,analogtxt).reshape(1,-1)
                     x=np.append(x,res, axis=0)
@@ -47,7 +49,10 @@ for i in range(n_spike_trains):
                     window1=int(b[0][0])
                     window2=int(b[0][1])
                     figure()
-                    plot(time[window1:window2],analog[1][window1:window2])
+                    subplot(2,1,1)
+                    plot(analog[numberLFP][window1:window2])
+                    subplot(2,1,2)
+                    plot(analog[numberanalogspikes][window1+57:window2+57])
                     tight_layout()
                     show()
                 else:
@@ -63,11 +68,10 @@ for i in range(n_spike_trains):
             channel1 = np.loadtxt(Chprov1+".txt")
             print(Chprov1)
             print("Starting to get the spikeshapes... Grab a book or something, this might take a while!")
-            a1=np.array([],int) 
             x1=np.empty([1,windowsize+2],int)
             for j in range(len(channel1)):
-                a1= np.where(time >= channel1[j])[0][0]
-                analogtxt1=analog[1][a1:a1+windowsize].reshape(1,windowsize)
+                a1= int(channel1[l]*samplingrate)-57
+                 analogtxt1=analog[numberLFP][a1:a1+windowsize].reshape(1,windowsize)
                 y1 = np.array([[a1],[a1+windowsize]], np.int32).reshape(1,2)
                 res1 = append(y1,analogtxt1).reshape(1,-1)
                 x1=np.append(x1,res1, axis=0)
@@ -78,7 +82,10 @@ for i in range(n_spike_trains):
                 window1=int(b[0][0])
                 window2=int(b[0][1])
                 figure()
-                plot(time[window1:window2],analog[1][window1:window2])
+                subplot(2,1,1)
+                plot(analog[numberLFP][window1:window2])
+                subplot(2,1,2)
+                plot(analog[numberanalogspikes][window1+57:window2+57])
                 tight_layout()
                 show()
         break
