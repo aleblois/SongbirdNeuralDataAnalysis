@@ -252,13 +252,13 @@ def spectrogram_old(file, songanalog, motifile, resnumber):
     b2=int(res[resnumber][1]*1.01) #Gives some freedom to the end of the window to be sure that will get the whole last syllable
     rawsong1=analog[1][b:b2].reshape(1,-1)
     rawsong=rawsong1[0][0:int(ansampling_rate*1.05)] #Allows to standardize the window for all motifs (default= ~1.05s)
-    window =('hamming')
+    window =("hamming")
     overlap = 64
     nperseg = 1024
     noverlap = nperseg-overlap
     fs=ansampling_rate # set here the sampling frequency
     #Compute and plot spectrogram
-    (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode='complex')
+    (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode="complex")
     figure()
     subplot(2,1,1)
     plot(rawsong)
@@ -318,13 +318,13 @@ def psthold(spnumber, motifile): #spnumber is which of the sp in the sp list is 
             a1.set_xlabel("Time [s]")
             spikes=sort(concatenate(spikes1))
             normfactor=len(mtall)*binwidth
-            a.set_ylabel('Spikes/s')
+            a.set_ylabel("Spikes/s")
             bins=arange(-shoulder,(shoulder+meandurall)+binwidth, 0.01)
-            a.hist(spikes, bins=bins+adjust, color='b', edgecolor='black', linewidth=1, weights=ones(len(spikes))/normfactor)
+            a.hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=ones(len(spikes))/normfactor)
             a.set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
             a.tick_params(
-                    axis='x',          # changes apply to the x-axis
-                    which='both',      # both major and minor ticks are affected
+                    axis="x",          # changes apply to the x-axis
+                    which="both",      # both major and minor ticks are affected
                     bottom=False,      # ticks along the bottom edge are off
                     top=False,         # ticks along the top edge are off
                     labelbottom=False)
@@ -339,13 +339,13 @@ def spectrogram_new(file, songanalog, beg, end): #check the beginning and the en
     analog, sp = getarrays(file)
     rawsong1=analog[1][beg:end].reshape(1,-1)
     rawsong=rawsong1[0]
-    window =('hamming')
+    window =("hamming")
     overlap = 64
     nperseg = 1024
     noverlap = nperseg-overlap
     fs=ansampling_rate
     #Compute and plot spectrogram
-    (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode='complex')
+    (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode="complex")
     figure()
     subplot(2,1,1)
     plot(rawsong)
