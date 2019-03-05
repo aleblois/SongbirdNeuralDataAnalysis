@@ -270,23 +270,25 @@ def spectrogram_old(file, songanalog, motifile, resnumber):
 ## Documentation for a function.
 #
 # Generates PSTH for motifs. Use it with old matfiles.
-def psthold(spnumber, motifile):
+def psthold(spnumber, motifile): #spnumber is which of the sp in the sp list is the one that you are interested on analysing
     analog, sp = getarrays(file)
     mt = scipy.io.loadmat(motifile)
     mtall = transpose(mt.get("all_motif_times"))
     mtsyb1 = mt.get("syllable_times")
-    mtsyb = insert(mtsyb1, len(mtsyb1[0]), [mtsyb1[:,4]+0.1], axis=1)
-    spused=sp[1]
+    mtsyb = insert(mtsyb1, len(mtsyb1[0]), [mtsyb1[:,-1]+0.25], axis=1)
+    mtsyb=mtsyb[::,1:] #The file that I was using, the first syllable was not a real syb, so it should start from second colum of origial mtsyb
+    spused=sp[spnumber]
     shoulder= 0.05 #50 ms
     binwidth=0.02
     sep=0
     adjust=0
     meandurall=0
     fig,(a,a1) = plt.subplots(2,1)
-    for s in range(len(mtall)):
+    for s in range(1,len(mtsyb[0])):
         adjust+=meandurall+sep
-        print(adjust)
-        meandurall=mean(mtsyb[:,s+1]-mtsyb[:,s])
+        #print(adjust)
+        meandurall=mean(mtsyb[:,s]-mtsyb[:,s-1])
+        print(meandurall)
         spikes1=[]
         res=-1
         count=0
@@ -296,8 +298,8 @@ def psthold(spnumber, motifile):
             step2=[]
             step3=[]
             step4=[]
-            beg= (mtall[i][0] + mtsyb[i][s]) #Will compute the beginning of the window
-            end= (mtall[i][0] + mtsyb[i][s+1]) #Will compute the end of the window
+            beg= (mtall[i][0] + mtsyb[i][s-1]) #Will compute the beginning of the window
+            end= (mtall[i][0] + mtsyb[i][s]) #Will compute the end of the window
             step1=spused[where(np.logical_and(spused >= beg-shoulder, spused <= end+shoulder) == True)]-beg
             step2=step1[where(np.logical_and(step1 >= 0, step1 <= end-beg) == True)]*(meandurall/(end-beg))
             step3=step1[where(np.logical_and(step1 >= end-beg, step1 <= (end-beg)+shoulder) == True)]+(meandurall-(end-beg))
