@@ -3,15 +3,13 @@
 #
 #  Created on Wed Feb  6 15:06:12 2019; -*- coding: utf-8 -*-; 
 
-import matplotlib
 import neo
 import numpy as np
-from pylab import *
+import pylab as py
 import os
 import datetime
 import pandas
 import scipy.io
-import h5py
 import scipy.signal
 
 file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
@@ -36,7 +34,7 @@ def getinfo(file):
     t_start=float(data_seg.t_start) #This gets the time of start of your recording
     t_stop=float(data_seg.t_stop) #This gets the time of stop of your recording
     as_steps=len(data_seg.analogsignals[0]) 
-    time=linspace(t_start,t_stop,as_steps)
+    time=np.linspace(t_start,t_stop,as_steps)
     n_analog_signals=len(data_seg.analogsignals) #This gets the number of analogical signals of your recording
     n_spike_trains=len(data_seg.spiketrains) #This gets the number of spiketrains signals of your recording
     ansampling_rate=int(data.children_recur[0].sampling_rate) #This gets the sampling rate of your recording
@@ -68,32 +66,32 @@ def plotplots(file):
     n_analog_signals, n_spike_trains, time, ansampling_rate = getinfo(file)
     analog, sp = getarrays(file)
     #Plot of Analogs
-    figure()
+    py.figure()
     for i in range(n_analog_signals):
-        subplot(len(analog),1,i+1)
-        plot(time,analog[i])
-        xlabel("time (s)")
-        title("Analog signal of: " + data_seg.analogsignals[i].name.split(" ")[2])
-    tight_layout()
+        py.subplot(len(analog),1,i+1)
+        py.plot(time,analog[i])
+        py.xlabel("time (s)")
+        py.title("Analog signal of: " + data_seg.analogsignals[i].name.split(" ")[2])
+    py.tight_layout()
     #Plot of Spike Trains
     Labels=[]
     for i in range(n_spike_trains):
         Chprov = data.list_units[i].annotations["id"]
         Labels += [Chprov]
-    figure()
-    yticks(np.arange(0, 11, step=1), )
-    xlabel("time (s)")
-    title("Spike trains")
+    py.figure()
+    py.yticks(np.arange(0, 11, step=1), )
+    py.xlabel("time (s)")
+    py.title("Spike trains")
     res=-1
     count=0
     for j in sp:
         colors=["black","blue", "red", "pink", "purple", "grey", "limegreen", "aqua", "magenta", "darkviolet", "orange"] #This was decided from observing which order SPIKE2 defines the colors for the spiketrains
         res=res+1
-        scatter(j,res+zeros(len(j)),marker="|", color=colors[count])
-        legend((Labels), bbox_to_anchor=(1, 1))
+        py.scatter(j,res+np.zeros(len(j)),marker="|", color=colors[count])
+        py.legend((Labels), bbox_to_anchor=(1, 1))
         count+=1        
-    tight_layout()
-    show()
+    py.tight_layout()
+    py.show()
 
 ## Documentation for a function.
 #
@@ -118,7 +116,7 @@ def createsave(file):
         Label = Chprov.split("#")[1]
         res += [[int(Ch), int(Label), int(LFP)]]
         df = pandas.DataFrame(data=res, columns= ["Channel", "Label", "LFP number"])
-        np.savetxt(Chprov+".txt", data_seg.spiketrains[i].as_array(), header="Spiketimes of: "+str(Chprov)) #Creates files with the Spiketimes.
+        np.savetxt(Chprov+".txt", data_seg.spiketrains[i].as_array()) #Creates files with the Spiketimes.
         
     print(df)
     file = open("Channels_Label_LFP.txt", "w+")
@@ -162,7 +160,7 @@ def spikeshapes(file):
     data, data_seg= read(file)
     n_analog_signals, n_spike_trains, time, ansampling_rate = getinfo(file)
     analog, sp = getarrays(file)
-    createsave(file) #This will call the function above and create a new folder with all the files. In case you already have them, comment this part.
+    #createsave(file) #This will call the function above and create a new folder with all the files. In case you already have them, comment this part.
     windowsize=int(ansampling_rate*2/1000) #Define here the number of points that suit your window (set to 2ms)
     numberLFP = int(input("Please type the index of the LFP channel")) #The spike shapes have to be obtained from the LFP signal. Check Summary to confirm the index
     notLFPnotsong = int(input("Please type the index of the other Analog channel")) #This is here just to have a comparison between the spikeshape from LFP and the other analogsignal(not the song, of course)
@@ -187,21 +185,21 @@ def spikeshapes(file):
         if answer4 == "" or answer4.lower()[0] == "y":
             window1=int(b1[0][0])
             window2=int(b1[0][1])
-            figure()
-            subplot(2,1,1)
-            plot(analog[numberLFP][window1:window2])
-            subplot(2,1,2)
-            plot(analog[notLFPnotsong][window1+57:window2+57])
-            tight_layout()
-            show()
+            py.figure()
+            py.subplot(2,1,1)
+            py.plot(analog[numberLFP][window1:window2])
+            py.subplot(2,1,2)
+            py.plot(analog[notLFPnotsong][window1+57:window2+57])
+            py.tight_layout()
+            py.show()
             
 ## Documentation for a function.
 #
 # Downsample 1000Hz the LPF signal and save it as .npy file
 def lfpdown(LFPfile): #LFPfile is the .npy one inside the new folder generated by the function createsave (for example, CSC1.npy)
-    ana=load(LFPfile+".npy")
+    ana=np.load(LFPfile)
     def mma(series,window):
-        return convolve(series,repeat(1,window)/window,"same")
+        return np.convolve(series,np.repeat(1,window)/window,"same")
     
     s_ana=ana[0:][:,0] #window of the array
     s_ana_1=mma(s_ana,100) #convolved version
@@ -214,43 +212,42 @@ def lfpdown(LFPfile): #LFPfile is the .npy one inside the new folder generated b
     np.save("LFPDownsampled", d)
     answer=input("Want to see the plots? Might be a bit heavy. [Y/n]")
     if answer == "" or answer.lower()[0] == "y":
-        fig,(s,s1) = subplots(2,1) 
+        py.fig,(s,s1) = py.subplots(2,1) 
         s.plot(s_ana)
         s.plot(s_ana_1)
         s.set_title("Plot of RawSignal X Convolved Version")
         s1.plot(c)
         s1.set_title("LFP Downsampled")
-    show()
-    tight_layout()
+    py.show()
+    py.tight_layout()
     return d
 
 ## Documentation for a function.
 #
 # Gets the motif times  from the old mat files (old way of getting the motifs)  
-def cutwavesold(file, songanalog, motifile):
+def getmotifsold(file, motifile):
     analog, sp = getarrays(file)
     n_analog_signals, n_spike_trains, time, ansampling_rate = getinfo(file)
-    ana=analog[songanalog] #songanalog it's the index of the analogsignal that contains the song
     mt = scipy.io.loadmat(motifile)
-    mtall = transpose(mt.get("all_motif_times"))
+    mtall = np.transpose(mt.get("all_motif_times"))
     mtsyb = mt.get("syllable_times")
-    res=array([1,2]).reshape(-1,2)
+    res=np.array([1,2]).reshape(-1,2)
     for i in range(len(mtall)):
-        x= (mtall[i][0] + mean(mtsyb[:,0]))* ansampling_rate #Will compute the beginning of the window
+        x= (mtall[i][0] + np.mean(mtsyb[:,0]))* ansampling_rate #Will compute the beginning of the window
         x2= (mtall[i][0] + mtsyb[i][-1]) * ansampling_rate #Will compute the end of the window
-        res=append(res, (x,x2)).reshape(-1,2)
+        res=np.append(res, (x,x2)).reshape(-1,2)
     return res[1:]
 
 ## Documentation for a function.
 #
 # Generates spectrogram of the motifs in the song raw signa. To be used with the old matfiles.   
-def spectrogram_old(file, songanalog, motifile, resnumber):
-    res=cutwavesold(file, songanalog, motifile)
+def spectrogram_old(file, songanalogfile, motifile, resnumber):
+    res=getmotifsold(file, motifile) #resnumber is the array of windows obtained in the previous function getmotifsold
     n_analog_signals, n_spike_trains, time, ansampling_rate = getinfo(file)
-    analog, sp = getarrays(file)
+    analog= np.load(songanalogfile)
     b=int(res[resnumber][0])
     b2=int(res[resnumber][1]*1.01) #Gives some freedom to the end of the window to be sure that will get the whole last syllable
-    rawsong1=analog[1][b:b2].reshape(1,-1)
+    rawsong1=analog[b:b2].reshape(1,-1)
     rawsong=rawsong1[0][0:int(ansampling_rate*1.05)] #Allows to standardize the window for all motifs (default= ~1.05s)
     window =("hamming")
     overlap = 64
@@ -259,36 +256,35 @@ def spectrogram_old(file, songanalog, motifile, resnumber):
     fs=ansampling_rate # set here the sampling frequency
     #Compute and plot spectrogram
     (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode="complex")
-    figure()
-    subplot(2,1,1)
-    plot(rawsong)
-    subplot(2,1,2)
-    imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
-    colorbar()
-    tight_layout()
+    py.figure()
+    py.subplot(2,1,1)
+    py.plot(rawsong)
+    py.subplot(2,1,2)
+    py.imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
+    py.colorbar()
+    py.tight_layout()
 
 ## Documentation for a function.
 #
 # Generates PSTH for motifs. Use it with old matfiles.
-def psthold(spnumber, motifile): #spnumber is which of the sp in the sp list is the one that you are interested on analysing
-    analog, sp = getarrays(file)
+def psthold(spikefile, motifile): #spnumber is which of the sp in the sp list is the one that you are interested on analysing
     mt = scipy.io.loadmat(motifile)
-    mtall = transpose(mt.get("all_motif_times"))
+    mtall = np.transpose(mt.get("all_motif_times"))
     mtsyb1 = mt.get("syllable_times")
-    mtsyb = insert(mtsyb1, len(mtsyb1[0]), [mtsyb1[:,-1]+0.25], axis=1)
+    mtsyb = np.insert(mtsyb1, len(mtsyb1[0]), [mtsyb1[:,-1]+0.25], axis=1)
     mtsyb=mtsyb[::,1:] #The file that I was using, the first syllable was not a real syb, so it should start from second colum of origial mtsyb
-    spused=sp[spnumber]
+    spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
     binwidth=0.02
     sep=0
     adjust=0
     meandurall=0
-    fig,(a,a1) = plt.subplots(2,1)
+    py.fig,(a,a1) = py.subplots(2,1)
     for s in range(1,len(mtsyb[0])):
         adjust+=meandurall+sep
         #print(adjust)
-        meandurall=mean(mtsyb[:,s]-mtsyb[:,s-1])
-        print(meandurall)
+        meandurall=np.mean(mtsyb[:,s]-mtsyb[:,s-1])
+        #print(meandurall)
         spikes1=[]
         res=-1
         count=0
@@ -297,30 +293,28 @@ def psthold(spnumber, motifile): #spnumber is which of the sp in the sp list is 
             step1=[]
             step2=[]
             step3=[]
-            step4=[]
             beg= (mtall[i][0] + mtsyb[i][s-1]) #Will compute the beginning of the window
             end= (mtall[i][0] + mtsyb[i][s]) #Will compute the end of the window
-            step1=spused[where(np.logical_and(spused >= beg-shoulder, spused <= end+shoulder) == True)]-beg
-            step2=step1[where(np.logical_and(step1 >= 0, step1 <= end-beg) == True)]*(meandurall/(end-beg))
-            step3=step1[where(np.logical_and(step1 >= end-beg, step1 <= (end-beg)+shoulder) == True)]+(meandurall-(end-beg))
-            step4=step1[where(step1>=(meandurall+shoulder))]
+            step1=spused[np.where(np.logical_and(spused >= beg-shoulder, spused <= end+shoulder) == True)]-beg
+            step2=step1[np.where(np.logical_and(step1 >= 0, step1 <= end-beg) == True)]*(meandurall/(end-beg))
+            step3=step1[np.where(np.logical_and(step1 >= end-beg, step1 <= (end-beg)+shoulder) == True)]+(meandurall-(end-beg))
             spikes1+=[step2+adjust,step3+adjust]
             res=res+1
             spikes2=spikes1
-            spikes2=concatenate(spikes2[n0:n1])
-            a1.scatter(spikes2,res+zeros(len(spikes2)),marker="|")
+            spikes2=np.concatenate(spikes2[n0:n1])
+            a1.scatter(spikes2,res+np.zeros(len(spikes2)),marker="|")
             count+=1
             n0+=2
             n1+=2
-            sep=0.06
+            sep=0.08
             a1.set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
             a1.set_ylabel("Motif number")
             a1.set_xlabel("Time [s]")
-            spikes=sort(concatenate(spikes1))
+            spikes=np.sort(np.concatenate(spikes1))
             normfactor=len(mtall)*binwidth
             a.set_ylabel("Spikes/s")
-            bins=arange(-shoulder,(shoulder+meandurall)+binwidth, 0.01)
-            a.hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=ones(len(spikes))/normfactor)
+            bins=np.arange(-shoulder,(shoulder+meandurall)+binwidth, binwidth)
+            a.hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor)
             a.set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
             a.tick_params(
                     axis="x",          # changes apply to the x-axis
@@ -328,16 +322,15 @@ def psthold(spnumber, motifile): #spnumber is which of the sp in the sp list is 
                     bottom=False,      # ticks along the bottom edge are off
                     top=False,         # ticks along the top edge are off
                     labelbottom=False)
-    fig.subplots_adjust(hspace=0)
-    a1.set_yticks(range(len(mtall)))
+    py.fig.subplots_adjust(hspace=0)
     
 ## Documentation for a function.
 #
 # Generates spectrogram of the motifs in the song raw signal. To be used with the new matfiles.   
-def spectrogram_new(file, songanalog, beg, end): #check the beginning and the end that you want from the new motif files (usually beg of A and end of D)
+def spectrogram_new(file, songanalogfile, beg, end): #check the beginning and the end that you want from the new motif files (usually beg of A and end of D)
     n_analog_signals, n_spike_trains, time, ansampling_rate = getinfo(file)
-    analog, sp = getarrays(file)
-    rawsong1=analog[1][beg:end].reshape(1,-1)
+    analog= np.load(songanalogfile)
+    rawsong1=analog[beg:end].reshape(1,-1)
     rawsong=rawsong1[0]
     window =("hamming")
     overlap = 64
@@ -346,10 +339,93 @@ def spectrogram_new(file, songanalog, beg, end): #check the beginning and the en
     fs=ansampling_rate
     #Compute and plot spectrogram
     (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode="complex")
-    figure()
-    subplot(2,1,1)
-    plot(rawsong)
-    subplot(2,1,2)
-    imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
-    colorbar()
-    tight_layout()        
+    py.figure()
+    py.subplot(2,1,1)
+    py.plot(rawsong)
+    py.subplot(2,1,2)
+    py.imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
+    py.colorbar()
+    py.tight_layout() 
+
+## Documentation for a function.
+#
+# Generates PSTH for motifs. Use it with new matfiles.
+def psthnew(spikefile, motifile): #spnumber is which of the sp in the sp list is the one that you are interested on analysing       
+    #Read and import mat file (new version)
+    f=open(motifile, "r")
+    imported = f.read().splitlines()
+    #Excludes everything that is not a real syllable
+    a=[] ; b=[] ; c=[] ; d=[]; e=[]
+    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
+    arrd=np.empty((1,2)); arre=np.empty((1,2))
+    for i in range(len(imported)):
+        if imported[i][-1] == "a":
+            a=[imported[i].split(",")]
+            arra=np.append(arra, np.array([int(a[0][0])/32000, int(a[0][1])/32000], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "b": 
+            b=[imported[i].split(",")]
+            arrb=np.append(arrb, np.array([int(b[0][0])/32000, int(b[0][1])/32000], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "c": 
+            c=[imported[i].split(",")]  
+            arrc=np.append(arrc, np.array([int(c[0][0])/32000, int(c[0][1])/32000], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "d": 
+            d=[imported[i].split(",")] 
+            arrd=np.append(arrd, np.array([int(d[0][0])/32000, int(d[0][1])/32000], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "e": 
+            e=[imported[i].split(",")]   
+            arre=np.append(arre, np.array([int(e[0][0])/32000, int(e[0][1])/32000], float).reshape(1,2), axis=0)
+            
+    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]  
+    #Starts to plot the PSTH
+    spused=np.loadtxt(spikefile)
+    shoulder= 0.05 #50 ms
+    binwidth=0.02
+    sep=0
+    adjust=0
+    meandurall=0
+    py.fig,(a,a1) = py.subplots(2,1)
+    k=[arra,arrb,arrc,arrd]
+    for i in range(len(k)):
+            used=k[i]
+            adjust+=meandurall+sep
+            #print(adjust)
+            meandurall=np.mean(used[:,1]-used[:,0])
+            print(meandurall)
+            spikes1=[]
+            res=-1
+            count=0
+            n0,n1=0,2
+            for j in range(len(used)):
+                step1=[]
+                step2=[]
+                step3=[]
+                beg= used[j][0] #Will compute the beginning of the window
+                end= used[j][1] #Will compute the end of the window
+                step1=spused[np.where(np.logical_and(spused >= beg-shoulder, spused <= end+shoulder) == True)]-beg
+                step2=step1[np.where(np.logical_and(step1 >= 0, step1 <= end-beg) == True)]*(meandurall/(end-beg))
+                step3=step1[np.where(np.logical_and(step1 >= end-beg, step1 <= (end-beg)+shoulder) == True)]+(meandurall-(end-beg))
+                spikes1+=[step2+adjust,step3+adjust]
+                res=res+1
+                spikes2=spikes1
+                spikes2=np.concatenate(spikes2[n0:n1])
+                a1.scatter(spikes2,res+np.zeros(len(spikes2)),marker="|")
+                count+=1
+                n0+=2
+                n1+=2
+                sep=0.08
+                a1.set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
+                a1.set_ylabel("Motif number")
+                a1.set_xlabel("Time [s]")
+                spikes=np.sort(np.concatenate(spikes1))
+                normfactor=len(used)*binwidth
+                a.set_ylabel("Spikes/s")
+                bins=np.arange(-shoulder,(shoulder+meandurall)+binwidth, step=binwidth)
+                a.hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor)
+                a.set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
+                a.tick_params(
+                        axis="x",          # changes apply to the x-axis
+                        which="both",      # both major and minor ticks are affected
+                        bottom=False,      # ticks along the bottom edge are off
+                        top=False,         # ticks along the top edge are off
+                        labelbottom=False)
+    py.fig.subplots_adjust(hspace=0)
