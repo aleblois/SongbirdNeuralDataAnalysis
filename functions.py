@@ -13,7 +13,7 @@ import scipy.io
 import scipy.signal
 
 file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
-songanalog=1 #Here you define which from the analog signals is the song one (if not sure, check summary file)
+songanalogfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
 motifile="motif_times_2018_05_06_11_12_43.mat" #Here you define what is the name of the file with the motif stamps/times
 
 ## Documentation for a function.
