@@ -479,3 +479,28 @@ def pearsondur(spikefile, motifile): #spikefile is the txt file with the spiketi
             array=array[1:]
             np.savetxt("syb"+str(i)+".txt", array)
             print(scipy.stats.pearsonr(array[:,1],array[:,0]))            
+
+## Documentation for a function.
+#
+# Envelope for song signal.
+#inputSignal=np.load("CSC10.npy")
+#inputSignal=inputSignal[:] #Should set a motif of interest otherwise original signal is too heavy
+def getEnvelope(inputSignal): 
+# Taking the absolute value
+
+    absoluteSignal = []
+    for sample in inputSignal:
+        absoluteSignal.append (abs(sample))
+
+    # Peak detection
+
+    intervalLength = 40 # change this number depending on your Signal frequency content and time scale
+    outputSignal = []
+
+    for baseIndex in range (0, len (absoluteSignal)):
+        maximum = 0
+        for lookbackIndex in range (intervalLength):
+            maximum = max (absoluteSignal [baseIndex - lookbackIndex], maximum)
+        outputSignal.append (maximum)
+
+    return outputSignal            
