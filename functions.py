@@ -11,6 +11,7 @@ import datetime
 import pandas
 import scipy.io
 import scipy.signal
+import scipy.stats
 
 file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
 songanalogfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
@@ -429,3 +430,52 @@ def psthnew(spikefile, motifile): #spnumber is which of the sp in the sp list is
                         top=False,         # ticks along the top edge are off
                         labelbottom=False)
     py.fig.subplots_adjust(hspace=0)
+    
+## Documentation for a function.
+#
+# Generates correlations for each syllable. Use it with new matfiles.    
+def pearsondur(spikefile, motifile): #spikefile is the txt file with the spiketimes       
+    #Read and import mat file (new version)
+    f=open(motifile, "r")
+    imported = f.read().splitlines()
+    samplingrate=32000 #define sampling rate
+    #Excludes everything that is not a real syllable
+    a=[] ; b=[] ; c=[] ; d=[]; e=[]
+    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
+    arrd=np.empty((1,2)); arre=np.empty((1,2))
+    for i in range(len(imported)):
+        if imported[i][-1] == "a":
+            a=[imported[i].split(",")]
+            arra=np.append(arra, np.array([int(a[0][0])/samplingrate, int(a[0][1])/samplingrate], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "b": 
+            b=[imported[i].split(",")]
+            arrb=np.append(arrb, np.array([int(b[0][0])/samplingrate, int(b[0][1])/samplingrate], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "c": 
+            c=[imported[i].split(",")]  
+            arrc=np.append(arrc, np.array([int(c[0][0])/samplingrate, int(c[0][1])/samplingrate], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "d": 
+            d=[imported[i].split(",")] 
+            arrd=np.append(arrd, np.array([int(d[0][0])/samplingrate, int(d[0][1])/samplingrate], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "e": 
+            e=[imported[i].split(",")]   
+            arre=np.append(arre, np.array([int(e[0][0])/samplingrate, int(e[0][1])/samplingrate], float).reshape(1,2), axis=0)
+            
+    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]
+    dura=arra[:,1]-arra[:,0]; durb=arrb[:,1]-arrb[:,0];durc=arrc[:,1]-arrc[:,0]; durd=arrd[:,1]-arrd[:,0]; dure=arre[:,1]-arre[:,0]
+    #Starts to compute correlations and save the data into txt file (in case the user wants to use it in another software)
+    spused=np.loadtxt(spikefile)
+    k=[arra,arrb,arrc,arrd]
+    g=[dura,durb,durc,durd,dure]
+    for i in range(len(k)):
+            used=k[i]
+            dur=g[i]
+            array=np.empty((1,2))
+            for j in range(len(used)):
+                step1=[]
+                beg= used[j][0] #Will compute the beginning of the window
+                end= used[j][1] #Will compute the end of the window
+                step1=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
+                array=np.append(array, np.array([[dur[j]],[np.size(step1)/dur[j]]]).reshape(-1,2), axis=0)
+            array=array[1:]
+            np.savetxt("syb"+str(i)+".txt", array)
+            print(scipy.stats.pearsonr(array[:,1],array[:,0]))            
