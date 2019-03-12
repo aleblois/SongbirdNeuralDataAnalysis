@@ -1,4 +1,4 @@
-# SongbirdNeuralDataAnalsysis
+# SongbirdNeuralDataAnalysis
 Tool development for analysing neural and vocalization data collected from songbirds
 
 This module contains a series of scripts to obtain/analyse data from Spike2 files (.smr):
