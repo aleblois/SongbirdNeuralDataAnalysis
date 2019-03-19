@@ -452,7 +452,7 @@ def psthnew(spikefile, motifile): #spikefile is the txt file with the spiketimes
 ## Documentation for a function.
 #
 # Generates correlations for each syllable. Use it with new matfiles.    
-def correlation(spikefile, motifile): #spikefile is the txt file with the spiketimes       
+def correlation(spikefile, motifile, n_iterations): #spikefile is the txt file with the spiketimes       
     #Read and import mat file (new version)
     f=open(motifile, "r")
     imported = f.read().splitlines()
@@ -490,6 +490,7 @@ def correlation(spikefile, motifile): #spikefile is the txt file with the spiket
             used=k[i]
             dur=g[i]
             array=np.empty((1,2))
+            statistics=[]
             for j in range(len(used)):
                 step1=[]
                 beg= used[j][0] #Will compute the beginning of the window
@@ -508,9 +509,20 @@ def correlation(spikefile, motifile): #spikefile is the txt file with the spiket
             homo=scipy.stats.levene(array[:,0],array[:,1])[1]
             if  s3.all() > alpha and homo > alpha: #test for normality
                 final=scipy.stats.pearsonr(array[:,0],array[:,1]) #if this is used, outcome will have no clear name on it
+                statistics+=[[final[0],final[1]]]
+                for q in range(n_iterations):
+                    resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
+                    res=scipy.stats.spearmanr(array[:,1],resample)
+                    statistics+=[[res[0],res[1]]]
             else: 
                 final=scipy.stats.spearmanr(array[:,0],array[:,1]) #if this is used, outcome will have the name spearman on it
-            print("Syllable " + str(sybs[i]) +": " + str(final))      
+                statistics+=[[final[0],final[1]]]
+                for x in range(n_iterations):
+                    resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
+                    res=scipy.stats.spearmanr(array[:,1],resample)
+                    statistics+=[[res[0],res[1]]]
+            np.savetxt("Data_Boot_Corr_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
+            print("Syllable " + str(sybs[i]) +": " + str(final))                
           
 ## Documentation for a function.
 #
