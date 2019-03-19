@@ -12,6 +12,7 @@ import pandas
 import scipy.io
 import scipy.signal
 import scipy.stats
+from scipy.interpolate import interp1d
 
 file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
 songanalogfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
@@ -268,7 +269,7 @@ def spectrogram_old(file, songanalogfile, motifile, resnumber):
 ## Documentation for a function.
 #
 # Generates PSTH for motifs. Use it with old matfiles.
-def psthold(spikefile, motifile): #spnumber is which of the sp in the sp list is the one that you are interested on analysing
+def psthold(spikefile, motifile): #spikefile is the txt file with the spiketimes
     mt = scipy.io.loadmat(motifile)
     mtall = np.transpose(mt.get("all_motif_times"))
     mtsyb1 = mt.get("syllable_times")
@@ -351,10 +352,11 @@ def spectrogram_new(file, songanalogfile, beg, end): #check the beginning and th
 ## Documentation for a function.
 #
 # Generates PSTH for motifs. Use it with new matfiles.
-def psthnew(spikefile, motifile): #spnumber is which of the sp in the sp list is the one that you are interested on analysing       
+def psthnew(spikefile, motifile): #spikefile is the txt file with the spiketimes       
     #Read and import mat file (new version)
     f=open(motifile, "r")
     imported = f.read().splitlines()
+    samplingrate=32000
     #Excludes everything that is not a real syllable
     a=[] ; b=[] ; c=[] ; d=[]; e=[]
     arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
@@ -362,30 +364,33 @@ def psthnew(spikefile, motifile): #spnumber is which of the sp in the sp list is
     for i in range(len(imported)):
         if imported[i][-1] == "a":
             a=[imported[i].split(",")]
-            arra=np.append(arra, np.array([int(a[0][0])/32000, int(a[0][1])/32000], float).reshape(1,2), axis=0)
+            arra=np.append(arra, np.array([int(a[0][0])/samplingrate, int(a[0][1])/samplingrate], float).reshape(1,2), axis=0)
         if imported[i][-1] == "b": 
             b=[imported[i].split(",")]
-            arrb=np.append(arrb, np.array([int(b[0][0])/32000, int(b[0][1])/32000], float).reshape(1,2), axis=0)
+            arrb=np.append(arrb, np.array([int(b[0][0])/samplingrate, int(b[0][1])/samplingrate], float).reshape(1,2), axis=0)
         if imported[i][-1] == "c": 
             c=[imported[i].split(",")]  
-            arrc=np.append(arrc, np.array([int(c[0][0])/32000, int(c[0][1])/32000], float).reshape(1,2), axis=0)
+            arrc=np.append(arrc, np.array([int(c[0][0])/samplingrate, int(c[0][1])/samplingrate], float).reshape(1,2), axis=0)
         if imported[i][-1] == "d": 
             d=[imported[i].split(",")] 
-            arrd=np.append(arrd, np.array([int(d[0][0])/32000, int(d[0][1])/32000], float).reshape(1,2), axis=0)
+            arrd=np.append(arrd, np.array([int(d[0][0])/samplingrate, int(d[0][1])/samplingrate], float).reshape(1,2), axis=0)
         if imported[i][-1] == "e": 
             e=[imported[i].split(",")]   
-            arre=np.append(arre, np.array([int(e[0][0])/32000, int(e[0][1])/32000], float).reshape(1,2), axis=0)
+            arre=np.append(arre, np.array([int(e[0][0])/samplingrate, int(e[0][1])/samplingrate], float).reshape(1,2), axis=0)
             
     arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]  
     #Starts to plot the PSTH
     spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
     binwidth=0.02
+    tes=0
     sep=0
     adjust=0
     meandurall=0
-    py.fig,(a,a1) = py.subplots(2,1)
+    py.fig, ax = py.subplots(2,1)
     k=[arra,arrb,arrc,arrd]
+    x2=[]
+    y2=[]
     for i in range(len(k)):
             used=k[i]
             adjust+=meandurall+sep
@@ -394,7 +399,7 @@ def psthnew(spikefile, motifile): #spnumber is which of the sp in the sp list is
             print(meandurall)
             spikes1=[]
             res=-1
-            count=0
+            spikes=[]
             n0,n1=0,2
             for j in range(len(used)):
                 step1=[]
@@ -408,39 +413,53 @@ def psthnew(spikefile, motifile): #spnumber is which of the sp in the sp list is
                 spikes1+=[step2+adjust,step3+adjust]
                 res=res+1
                 spikes2=spikes1
+                spikes3=spikes1
                 spikes2=np.concatenate(spikes2[n0:n1])
-                a1.scatter(spikes2,res+np.zeros(len(spikes2)),marker="|")
-                count+=1
+                ax[1].scatter(spikes2,res+np.zeros(len(spikes2)),marker="|")
                 n0+=2
                 n1+=2
                 sep=0.08
-                a1.set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
-                a1.set_ylabel("Motif number")
-                a1.set_xlabel("Time [s]")
-                spikes=np.sort(np.concatenate(spikes1))
+                ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
+                ax[1].set_ylabel("Motif number")
+                ax[1].set_xlabel("Time [s]")
+                #spikes=np.sort(np.concatenate(spikes1))
                 normfactor=len(used)*binwidth
-                a.set_ylabel("Spikes/s")
+                ax[0].set_ylabel("Spikes/s")
                 bins=np.arange(-shoulder,(shoulder+meandurall)+binwidth, step=binwidth)
-                a.hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor)
-                a.set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
-                a.tick_params(
+                #a.hist(spikes, bins='sturges', color="b", edgecolor="black", linewidth=1)
+                ax[0].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
+                ax[0].tick_params(
                         axis="x",          # changes apply to the x-axis
                         which="both",      # both major and minor ticks are affected
                         bottom=False,      # ticks along the bottom edge are off
                         top=False,         # ticks along the top edge are off
                         labelbottom=False)
+            spikes=np.sort(np.concatenate(spikes3))
+            y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
+            ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left")
+            x2+=[x1[tes:]]
+            y=np.append(y1,0)
+            y2+=[y[tes:]]
+            tes=2
+    x2=np.concatenate(x2)
+    x2=np.sort(x2)
+    y2=np.concatenate(y2)
+    f = scipy.interpolate.interp1d(x2, y2, kind='cubic')
+    xnew=np.linspace(min(x2),max(x2), num=1000)
+    ax[0].plot(xnew,f(xnew), color="r")
     py.fig.subplots_adjust(hspace=0)
     
 ## Documentation for a function.
 #
 # Generates correlations for each syllable. Use it with new matfiles.    
-def pearsondur(spikefile, motifile): #spikefile is the txt file with the spiketimes       
+def correlation(spikefile, motifile): #spikefile is the txt file with the spiketimes       
     #Read and import mat file (new version)
     f=open(motifile, "r")
     imported = f.read().splitlines()
     samplingrate=32000 #define sampling rate
     #Excludes everything that is not a real syllable
     a=[] ; b=[] ; c=[] ; d=[]; e=[]
+    sybs=["A","B","C","D","E"]
     arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
     arrd=np.empty((1,2)); arre=np.empty((1,2))
     for i in range(len(imported)):
@@ -466,6 +485,7 @@ def pearsondur(spikefile, motifile): #spikefile is the txt file with the spiketi
     spused=np.loadtxt(spikefile)
     k=[arra,arrb,arrc,arrd]
     g=[dura,durb,durc,durd,dure]
+    final=[]
     for i in range(len(k)):
             used=k[i]
             dur=g[i]
@@ -477,9 +497,21 @@ def pearsondur(spikefile, motifile): #spikefile is the txt file with the spiketi
                 step1=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
                 array=np.append(array, np.array([[dur[j]],[np.size(step1)/dur[j]]]).reshape(-1,2), axis=0)
             array=array[1:]
-            np.savetxt("syb"+str(i)+".txt", array)
-            print(scipy.stats.pearsonr(array[:,1],array[:,0]))            
-
+            #np.savetxt("Data_Corr_Dur_syb"+str(sybs[i])+".txt", array)
+            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+            z = np.abs(scipy.stats.zscore(array))
+            array=array[(z < threshold).all(axis=1)]
+            alpha=0.05
+            s1=scipy.stats.shapiro(array[:,0])[1]
+            s2=scipy.stats.shapiro(array[:,1])[1]
+            s3=np.array([s1,s2])
+            homo=scipy.stats.levene(array[:,0],array[:,1])[1]
+            if  s3.all() > alpha and homo > alpha: #test for normality
+                final=scipy.stats.pearsonr(array[:,0],array[:,1]) #if this is used, outcome will have no clear name on it
+            else: 
+                final=scipy.stats.spearmanr(array[:,0],array[:,1]) #if this is used, outcome will have the name spearman on it
+            print("Syllable " + str(sybs[i]) +": " + str(final))      
+          
 ## Documentation for a function.
 #
 # Envelope for song signal.
