@@ -12,10 +12,11 @@ import pandas
 import scipy.io
 import scipy.signal
 import scipy.stats
-from scipy.interpolate import interp1d
+import scipy.fftpack
+import scipy.interpolate
 
 file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
-songanalogfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
+songfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
 motifile="motif_times_2018_05_06_11_12_43.mat" #Here you define what is the name of the file with the motif stamps/times
 
 ## Documentation for a function.
@@ -243,10 +244,10 @@ def getmotifsold(file, motifile):
 ## Documentation for a function.
 #
 # Generates spectrogram of the motifs in the song raw signa. To be used with the old matfiles.   
-def spectrogram_old(file, songanalogfile, motifile, resnumber):
+def spectrogram_old(file, songfile, motifile, resnumber):
     res=getmotifsold(file, motifile) #resnumber is the array of windows obtained in the previous function getmotifsold
     n_analog_signals, n_spike_trains, time, ansampling_rate = getinfo(file)
-    analog= np.load(songanalogfile)
+    analog= np.load(songfile)
     b=int(res[resnumber][0])
     b2=int(res[resnumber][1]*1.01) #Gives some freedom to the end of the window to be sure that will get the whole last syllable
     rawsong1=analog[b:b2].reshape(1,-1)
@@ -329,9 +330,9 @@ def psthold(spikefile, motifile): #spikefile is the txt file with the spiketimes
 ## Documentation for a function.
 #
 # Generates spectrogram of the motifs in the song raw signal. To be used with the new matfiles.   
-def spectrogram_new(file, songanalogfile, beg, end): #check the beginning and the end that you want from the new motif files (usually beg of A and end of D)
+def spectrogram_new(file, songfile, beg, end): #check the beginning and the end that you want from the new motif files (usually beg of A and end of D)
     n_analog_signals, n_spike_trains, time, ansampling_rate = getinfo(file)
-    analog= np.load(songanalogfile)
+    analog= np.load(songfile)
     rawsong1=analog[beg:end].reshape(1,-1)
     rawsong=rawsong1[0]
     window =("hamming")
@@ -527,24 +528,80 @@ def correlation(spikefile, motifile, n_iterations): #spikefile is the txt file w
 ## Documentation for a function.
 #
 # Envelope for song signal.
-#inputSignal=np.load("CSC10.npy")
-#inputSignal=inputSignal[:] #Should set a motif of interest otherwise original signal is too heavy
-def getEnvelope(inputSignal): 
-# Taking the absolute value
+def getEnvelope(songfile, beg, end, window_size): 
+    inputSignal=np.load(songfile)
+    inputSignal=np.ravel(inputSignal[beg:end])
+    def window_rms(inputSignal, window_size):
+        a2 = np.power(inputSignal,2)
+        window = np.ones(window_size)/float(window_size)
+        return np.sqrt(np.convolve(a2, window, 'valid'))
+    
+    def getEnvelope(inputSignal):
+    # Taking the absolute value
+    
+        absoluteSignal = []
+        for sample in inputSignal:
+            absoluteSignal.append (abs (sample))
+    
+        # Peak detection
+    
+        intervalLength = window_size # change this number depending on your Signal frequency content and time scale
+        outputSignal = []
+    
+        for baseIndex in range (0, len (absoluteSignal)):
+            maximum = 0
+            for lookbackIndex in range (intervalLength):
+                maximum = max (absoluteSignal [baseIndex - lookbackIndex], maximum)
+            outputSignal.append (maximum)
+    
+        return outputSignal
+    
+    outputSignal=getEnvelope(inputSignal)
+    rms=window_rms(inputSignal, window_size)
+    
+    py.fig, (a,b,c) =py.subplots(3,1)
+    a.plot(abs(inputSignal))
+    
+    b.plot(abs(inputSignal))
+    b.plot(outputSignal)
+    
+    c.plot(abs(inputSignal))
+    c.plot(rms)           
+    py.show()
 
-    absoluteSignal = []
-    for sample in inputSignal:
-        absoluteSignal.append (abs(sample))
-
-    # Peak detection
-
-    intervalLength = 40 # change this number depending on your Signal frequency content and time scale
-    outputSignal = []
-
-    for baseIndex in range (0, len (absoluteSignal)):
-        maximum = 0
-        for lookbackIndex in range (intervalLength):
-            maximum = max (absoluteSignal [baseIndex - lookbackIndex], maximum)
-        outputSignal.append (maximum)
-
-    return outputSignal            
+## Documentation for a function.
+#
+# Fast Fourier Transform to obtain the frequencies of the syllables.
+def fft(songfile, beg, end, fs_rate):
+    signal=np.load(songfile) #The song channel raw data
+    signal=signal[beg:end] #I selected just one syllable A to test
+    fs_rate = fs_rate
+    print ("Frequency sampling", fs_rate)
+    l_audio = len(signal.shape)
+    print ("Channels", l_audio)
+    if l_audio == 2:
+        signal = signal.sum(axis=1) / 2
+    N = signal.shape[0]
+    print ("Complete Samplings N", N)
+    secs = N / float(fs_rate)
+    print ("secs", secs)
+    Ts = 1.0/fs_rate # sampling interval in time
+    print ("Timestep between samples Ts", Ts)
+    t = scipy.arange(0, secs, Ts) # time vector as scipy arange field / numpy.ndarray
+    FFT = abs(scipy.fft(signal))
+    FFT_side = FFT[range(int(N/2))] # one side FFT range
+    freqs = scipy.fftpack.fftfreq(signal.size, t[1]-t[0])
+    freqs_side = freqs[range(int(N/2))]
+    py.subplot(311)
+    p1 = py.plot(t, signal, "g") # plotting the signal
+    py.xlabel('Time')
+    py.ylabel('Amplitude')
+    py.subplot(312)
+    p2 = py.plot(freqs, FFT, "r") # plotting the complete fft spectrum
+    py.xlabel('Frequency (Hz)')
+    py.ylabel('Count dbl-sided')
+    py.subplot(313)
+    p3 = py.plot(freqs_side, abs(FFT_side), "b") # plotting the positive fft spectrum
+    py.xlabel('Frequency (Hz)')
+    py.ylabel('Count single-sided')
+    py.show()
