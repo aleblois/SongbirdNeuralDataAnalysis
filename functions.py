@@ -452,8 +452,8 @@ def psthnew(spikefile, motifile): #spikefile is the txt file with the spiketimes
     
 ## Documentation for a function.
 #
-# Generates correlations for each syllable. Use it with new matfiles.    
-def correlation(spikefile, motifile, n_iterations): #spikefile is the txt file with the spiketimes       
+# Generates correlations for each syllable. Use it with new matfiles.
+def correlation(spikefile, motifile, n_iterations): #n_iterations is for the bootstrap section      
     #Read and import mat file (new version)
     f=open(motifile, "r")
     imported = f.read().splitlines()
@@ -504,21 +504,21 @@ def correlation(spikefile, motifile, n_iterations): #spikefile is the txt file w
             z = np.abs(scipy.stats.zscore(array))
             array=array[(z < threshold).all(axis=1)]
             alpha=0.05
-            s1=scipy.stats.shapiro(array[:,0])[1]
+            s1=scipy.stats.shapiro(array[:,0])[1] #Normality Test
             s2=scipy.stats.shapiro(array[:,1])[1]
             s3=np.array([s1,s2])
-            homo=scipy.stats.levene(array[:,0],array[:,1])[1]
-            if  s3.all() > alpha and homo > alpha: #test for normality
+            homo=scipy.stats.levene(array[:,0],array[:,1])[1] #Homocedasticity Test
+            if  s3.all() > alpha and homo > alpha: #test for normality and homocedasticity
                 final=scipy.stats.pearsonr(array[:,0],array[:,1]) #if this is used, outcome will have no clear name on it
                 statistics+=[[final[0],final[1]]]
-                for q in range(n_iterations):
+                for q in range(n_iterations): #bootstrap
                     resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
                     res=scipy.stats.spearmanr(array[:,1],resample)
                     statistics+=[[res[0],res[1]]]
             else: 
                 final=scipy.stats.spearmanr(array[:,0],array[:,1]) #if this is used, outcome will have the name spearman on it
                 statistics+=[[final[0],final[1]]]
-                for x in range(n_iterations):
+                for x in range(n_iterations): #bootstrap
                     resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
                     res=scipy.stats.spearmanr(array[:,1],resample)
                     statistics+=[[res[0],res[1]]]
@@ -574,7 +574,7 @@ def getEnvelope(songfile, beg, end, window_size):
 # Fast Fourier Transform to obtain the frequencies of the syllables.
 def fft(songfile, beg, end, fs_rate):
     signal=np.load(songfile) #The song channel raw data
-    signal=signal[beg:end] #I selected just one syllable A to test
+    signal=signal[beg:end] #Define the motif or syllable
     fs_rate = fs_rate
     print ("Frequency sampling", fs_rate)
     l_audio = len(signal.shape)
