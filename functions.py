@@ -137,9 +137,8 @@ def createsave(file):
         anlenght= str(data.children_recur[k].size)
         anunit=str(data.children_recur[k].units).split(" ")[1]
         anname=str(data.children_recur[k].name)
-        ansampling=str(data.children_recur[i].sampling_rate)
         antime = str(str(data.children_recur[k].t_start) + " to " + str(data.children_recur[k].t_stop))
-        an+=[["Analog index:" + str(k) + " Channel Name: " + anname, "Lenght: "+ anlenght, " Unit: " + anunit, " Sampling Rate: " + ansampling + " Duration: " + antime]]    
+        an+=[["Analog index:" + str(k) + " Channel Name: " + anname, "Lenght: "+ anlenght, " Unit: " + anunit, " Sampling Rate: " + str(ansampling_rate) + " Duration: " + antime]]    
     
     spk=["Number of SpikeTrains: " + str(n_spike_trains)]    
     for l in range(n_analog_signals, n_spike_trains + n_analog_signals):
@@ -452,8 +451,8 @@ def psthnew(spikefile, motifile): #spikefile is the txt file with the spiketimes
     
 ## Documentation for a function.
 #
-# Generates correlations for each syllable. Use it with new matfiles.
-def correlation(spikefile, motifile, n_iterations): #n_iterations is for the bootstrap section      
+# Generates correlations for each syllable. Use it with new matfiles.    
+def correlation(spikefile, motifile, n_iterations): #spikefile is the txt file with the spiketimes       
     #Read and import mat file (new version)
     f=open(motifile, "r")
     imported = f.read().splitlines()
@@ -504,21 +503,21 @@ def correlation(spikefile, motifile, n_iterations): #n_iterations is for the boo
             z = np.abs(scipy.stats.zscore(array))
             array=array[(z < threshold).all(axis=1)]
             alpha=0.05
-            s1=scipy.stats.shapiro(array[:,0])[1] #Normality Test
+            s1=scipy.stats.shapiro(array[:,0])[1]
             s2=scipy.stats.shapiro(array[:,1])[1]
             s3=np.array([s1,s2])
-            homo=scipy.stats.levene(array[:,0],array[:,1])[1] #Homocedasticity Test
-            if  s3.all() > alpha and homo > alpha: #test for normality and homocedasticity
+            homo=scipy.stats.levene(array[:,0],array[:,1])[1]
+            if  s3.all() > alpha and homo > alpha: #test for normality
                 final=scipy.stats.pearsonr(array[:,0],array[:,1]) #if this is used, outcome will have no clear name on it
                 statistics+=[[final[0],final[1]]]
-                for q in range(n_iterations): #bootstrap
+                for q in range(n_iterations):
                     resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
                     res=scipy.stats.spearmanr(array[:,1],resample)
                     statistics+=[[res[0],res[1]]]
             else: 
                 final=scipy.stats.spearmanr(array[:,0],array[:,1]) #if this is used, outcome will have the name spearman on it
                 statistics+=[[final[0],final[1]]]
-                for x in range(n_iterations): #bootstrap
+                for x in range(n_iterations):
                     resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
                     res=scipy.stats.spearmanr(array[:,1],resample)
                     statistics+=[[res[0],res[1]]]
@@ -574,11 +573,10 @@ def getEnvelope(songfile, beg, end, window_size):
 # Fast Fourier Transform to obtain the frequencies of the syllables.
 def fft(songfile, beg, end, fs_rate):
     signal=np.load(songfile) #The song channel raw data
-    signal=signal[beg:end] #Define the motif or syllable
+    signal=signal[beg:end] #I selected just one syllable A to test
     fs_rate = fs_rate
     print ("Frequency sampling", fs_rate)
     l_audio = len(signal.shape)
-    print ("Channels", l_audio)
     if l_audio == 2:
         signal = signal.sum(axis=1) / 2
     N = signal.shape[0]
@@ -588,7 +586,7 @@ def fft(songfile, beg, end, fs_rate):
     Ts = 1.0/fs_rate # sampling interval in time
     print ("Timestep between samples Ts", Ts)
     t = scipy.arange(0, secs, Ts) # time vector as scipy arange field / numpy.ndarray
-    FFT = abs(scipy.fft(signal))
+    FFT = abs(scipy.fft(signal))**2 # if **2 is power spectrum, without is amplitude spectrum
     FFT_side = FFT[range(int(N/2))] # one side FFT range
     freqs = scipy.fftpack.fftfreq(signal.size, t[1]-t[0])
     freqs_side = freqs[range(int(N/2))]
@@ -605,3 +603,4 @@ def fft(songfile, beg, end, fs_rate):
     py.xlabel('Frequency (Hz)')
     py.ylabel('Count single-sided')
     py.show()
+    return freqs
