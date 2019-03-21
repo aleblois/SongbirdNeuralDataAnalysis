@@ -603,4 +603,3 @@ def fft(songfile, beg, end, fs_rate):
     py.xlabel('Frequency (Hz)')
     py.ylabel('Count single-sided')
     py.show()
-    return freqs
