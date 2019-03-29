@@ -175,6 +175,7 @@ def createsave(file):
 ## 
 #
 # This function will get and save the spikeshapes (.txt) from the LFP signal.
+#
 # Arguments:
 #
 # file is the .smr file
@@ -210,11 +211,11 @@ def spikeshapes(file, LFPfile, notLFPfile):
         if answer4 == "" or answer4.lower()[0] == "y":
             window1=int(b1[0][0])
             window2=int(b1[0][1])
-            py.figure()
-            py.subplot(2,1,1)
-            py.plot(LFP[window1:window2])
-            py.subplot(2,1,2)
-            py.plot(notLFP[window1+57:window2+57])
+            py.fig,(s,s1) = py.subplots(2,1)
+            s.plot(LFP[window1:window2])
+            s.set_title("SpikeShape from LFP")
+            s1.plot(notLFP[window1+57:window2+57])
+            s1.set_title("SpikeShape not from LFP") # Just like you would see in Spike2
             py.tight_layout()
             py.show()
  
@@ -242,11 +243,10 @@ def lfpdown(LFPfile): #LFPfile is the .npy one inside the new folder generated b
         s.plot(s_ana)
         s.plot(s_ana_1)
         s.set_title("Plot of RawSignal X Convolved Version")
-        s1.plot(c)
+        s1.plot(d)
         s1.set_title("LFP Downsampled")
-    py.show()
-    py.tight_layout()
-    return d
+        py.show()
+        py.tight_layout()
 
 
 ## 
@@ -290,11 +290,13 @@ def spectrogram(songfile, beg, end, fs):
 # spikefile is the .txt file with the spiketimes.
 #
 # motifile is the .txt file containing the annotations of the beggining and end of each syllable/motif.
-def psth(spikefile, motifile):        
+#
+# fs is the sampling frequency    
+def psth(spikefile, motifile, fs):        
     #Read and import mat file (new version)
     f=open(motifile, "r")
     imported = f.read().splitlines()
-    samplingrate=32000
+    samplingrate=fs
     #Excludes everything that is not a real syllable
     a=[] ; b=[] ; c=[] ; d=[]; e=[]
     arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
