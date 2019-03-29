@@ -379,7 +379,7 @@ def psth(spikefile, motifile):
     x2=np.concatenate(x2)
     x2=np.sort(x2)
     y2=np.concatenate(y2)
-    f = scipy.interpolate.interp1d(x2, y2, kind='cubic')
+    f = scipy.interpolate.interp1d(x2, y2, kind="cubic")
     xnew=np.linspace(min(x2),max(x2), num=1000)
     ax[0].plot(xnew,f(xnew), color="r")
     py.fig.subplots_adjust(hspace=0)
@@ -491,7 +491,7 @@ def getEnvelope(songfile, beg, end, window_size):
     def window_rms(inputSignal, window_size):
         a2 = np.power(inputSignal,2)
         window = np.ones(window_size)/float(window_size)
-        return np.sqrt(np.convolve(a2, window, 'valid'))
+        return np.sqrt(np.convolve(a2, window, "valid"))
     
     def getEnvelope(inputSignal):
     # Taking the absolute value
@@ -559,16 +559,16 @@ def fft(songfile, beg, end, fs):
     freqs_side = freqs[range(int(N/2))]
     py.subplot(311)
     p1 = py.plot(t, signal, "g") # plotting the signal
-    py.xlabel('Time')
-    py.ylabel('Amplitude')
+    py.xlabel("Time")
+    py.ylabel("Amplitude")
     py.subplot(312)
     p2 = py.plot(freqs, FFT, "r") # plotting the complete fft spectrum
-    py.xlabel('Frequency (Hz)')
-    py.ylabel('Count dbl-sided')
+    py.xlabel("Frequency (Hz)")
+    py.ylabel("Count dbl-sided")
     py.subplot(313)
     p3 = py.plot(freqs_side, abs(FFT_side), "b") # plotting the positive fft spectrum
-    py.xlabel('Frequency (Hz)')
-    py.ylabel('Count single-sided')
+    py.xlabel("Frequency (Hz)")
+    py.ylabel("Count single-sided")
     py.show()
 
 ## 
@@ -585,7 +585,9 @@ def fft(songfile, beg, end, fs):
 # lags is the number of lags for the autocorrelation
 #
 # window_size is the size of the window for the convolve function (Envelopes)
-def pitch(songfile, motifile, lags, window_size): #spikefile is the txt file with the spiketimes       
+#
+# fs is the sampling rate   
+def pitch(songfile, motifile, lags, window_size,fs): #spikefile is the txt file with the spiketimes       
     #Read and import mat file (new version)
     song=np.load(songfile)
     f=open(motifile, "r")
@@ -619,19 +621,19 @@ def pitch(songfile, motifile, lags, window_size): #spikefile is the txt file wit
         py.draw()
     
     answer=input("Which syllable?")
-    if answer.lower() == 'a':
+    if answer.lower() == "a":
         used=arra
-    elif answer.lower() == 'b':
+    elif answer.lower() == "b":
         used=arrb
-    elif answer.lower() == 'c':
+    elif answer.lower() == "c":
         used=arrc    
-    elif answer.lower() == 'd':
+    elif answer.lower() == "d":
         used=arrd
     
     def window_rms(inputSignal, window_size):
         a2 = np.power(inputSignal,2)
         window = np.ones(window_size)/float(window_size)
-        return np.sqrt(np.convolve(a2, window, 'valid'))
+        return np.sqrt(np.convolve(a2, window, "valid"))
     fig, az = py.subplots()
     example=song[int(used[0][0]):int(used[0][1])]
     abso=abs(example)
@@ -656,10 +658,10 @@ def pitch(songfile, motifile, lags, window_size): #spikefile is the txt file wit
        while True:
            coords = []
            while len(coords) < numcuts+1:
-               tellme('Select the points to cut with mouse')
+               tellme("Select the points to cut with mouse")
                coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
-           py.scatter(coords[:,0],coords[:,1], s=50, marker='X', zorder=10, c='r')    
-           tellme('Happy? Key click for yes, mouse click for no')
+           py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
+           tellme("Happy? Key click for yes, mouse click for no")
            if py.waitforbuttonpress():
                break
        py.close()
@@ -676,12 +678,35 @@ def pitch(songfile, motifile, lags, window_size): #spikefile is the txt file wit
         py.plot(np.arange(means[j-1],means[j-1]+len(syb[means[j-1]:means[j]])),syb[means[j-1]:means[j]])   
 
     # Autocorrelation
+    freq2=[]
     for j in range(1,len(means)):
         py.figure()
+        
         for i in range(len(used)):
             syb=song[int(used[i][0]):int(used[i][1])]
             sybcut=syb[means[j-1]:means[j]]
             x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
-            f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind='quadratic')
+            f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
             xnew=np.linspace(min(x2),max(x2), num=1000)
-            py.plot(xnew,f(xnew))    
+            py.plot(xnew,f(xnew))
+        py.xlabel("Number of Lags")
+        py.ylabel("Autocorrelation score")
+        tellme("Want to keep it? Key click (x2) for yes, mouse click for no")
+        if not py.waitforbuttonpress():
+            py.close()
+            continue            
+        else:
+            py.waitforbuttonpress()
+            while True:
+                freq = []
+                while len(freq) < 1:
+                    tellme("Select the point for the frequency.")
+                    freq = np.asarray(py.ginput(1, timeout=-1, show_clicks=True))
+                py.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="r")    
+                tellme("Happy? Key click for yes, mouse click for no")
+                if py.waitforbuttonpress():
+                    break    
+            py.close()
+            freq2=np.append(freq2,freq[:,0])
+    freq2=np.reciprocal(freq2/fs)
+    return freq2    
