@@ -589,7 +589,7 @@ def fft(songfile, beg, end, fs):
 # window_size is the size of the window for the convolve function (Envelopes)
 #
 # fs is the sampling rate   
-def pitch(songfile, motifile, lags, window_size,fs): #spikefile is the txt file with the spiketimes       
+def pitch(songfile, motifile, lags, window_size,fs):  
     #Read and import mat file (new version)
     song=np.load(songfile)
     f=open(motifile, "r")
@@ -619,7 +619,7 @@ def pitch(songfile, motifile, lags, window_size,fs): #spikefile is the txt file 
     
     def tellme(s):
         print(s)
-        py.title(s, fontsize=16)
+        py.title(s, fontsize=10)
         py.draw()
     
     answer=input("Which syllable?")
@@ -636,6 +636,8 @@ def pitch(songfile, motifile, lags, window_size,fs): #spikefile is the txt file 
         a2 = np.power(inputSignal,2)
         window = np.ones(window_size)/float(window_size)
         return np.sqrt(np.convolve(a2, window, "valid"))
+    
+    #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
     fig, az = py.subplots()
     example=song[int(used[0][0]):int(used[0][1])]
     abso=abs(example)
@@ -644,9 +646,11 @@ def pitch(songfile, motifile, lags, window_size,fs): #spikefile is the txt file 
     rms=window_rms(np.ravel(example),window_size)
     az.plot(rms)
     az.set_title("Click on graph to move on.")
-    py.waitforbuttonpress()
+    py.waitforbuttonpress(10)
     numcuts=int(input("Number of chunks?"))
     py.close()
+    
+    # Will provide you 4 random exmaples of syllables to stablish the cutting points
     coords2=[]
     for i in range(4):           
        i=random.randint(0,len(used)-1)
@@ -656,7 +660,7 @@ def pitch(songfile, motifile, lags, window_size,fs): #spikefile is the txt file 
        ax.plot(abso)
        rms=window_rms(np.ravel(syb),window_size)
        ax.plot(rms)
-       py.waitforbuttonpress()
+       py.waitforbuttonpress(10)
        while True:
            coords = []
            while len(coords) < numcuts+1:
@@ -674,41 +678,86 @@ def pitch(songfile, motifile, lags, window_size,fs): #spikefile is the txt file 
     means=[]
     for i in range(len(coords2)):
         means+=[int(np.mean(coords2[i]))]
-        
+     
+    # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
     py.plot(syb)
     for j in range(1,len(means)):
         py.plot(np.arange(means[j-1],means[j-1]+len(syb[means[j-1]:means[j]])),syb[means[j-1]:means[j]])   
 
-    # Autocorrelation
-    freq2=[]
+    # Autocorrelation and Distribution 
+    freq3=[]
     for j in range(1,len(means)):
-        py.figure()
-        
+        freq2=[]
+        coords5=[]
+        fig=py.figure()
+        gs=py.GridSpec(2,2)
+        a2=fig.add_subplot(gs[0,0]) # First row, first column
+        a3=fig.add_subplot(gs[0,1]) # First row, second column
+        a1=fig.add_subplot(gs[1,:]) 
         for i in range(len(used)):
             syb=song[int(used[i][0]):int(used[i][1])]
             sybcut=syb[means[j-1]:means[j]]
             x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
             f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
             xnew=np.linspace(min(x2),max(x2), num=1000)
-            py.plot(xnew,f(xnew))
-        py.xlabel("Number of Lags")
-        py.ylabel("Autocorrelation score")
-        tellme("Want to keep it? Key click (x2) for yes, mouse click for no")
-        if not py.waitforbuttonpress():
+            a1.plot(xnew,f(xnew))
+            a1.set_xlabel("Number of Lags")
+            a1.set_ylabel("Autocorrelation score")
+        a1.set_label(tellme("Want to keep it? Key click (x2) for yes, mouse click for no"))
+        gs.tight_layout(fig)
+        if not py.waitforbuttonpress(30):
             py.close()
             continue            
         else:
-            py.waitforbuttonpress()
+            py.waitforbuttonpress(30)
+            while True:           
+                coord=[]
+                while len(coord) < 2:
+                    tellme("Select the points for the peak.") #You should choose in the graph the range that representes the peak
+                    coord = np.asarray(py.ginput(2, timeout=-1, show_clicks=True))
+                py.scatter(coord[:,0],coord[:,1], s=50, marker="X", zorder=10, c="b")
+                tellme("Happy? Key click for yes, mouse click for no")
+                if py.waitforbuttonpress(30):
+                    break
+            coords5=coord[:,0]*10 # times ten is because of the linspace being 1000
+            a1.clear()
+        #From now it will use the coordinates of the peak to plot the distribution and the interpolated version of the peak    
+        for i in range(len(used)):
+            syb=song[int(used[i][0]):int(used[i][1])]
+            sybcut=syb[means[j-1]:means[j]]
+            x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
+            f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
+            xnew=np.linspace(min(x2),max(x2), num=1000)
+            a1.plot(xnew,f(xnew))
+            x3=xnew[int(coords5[0]):int(coords5[1])]
+            g=scipy.interpolate.interp1d(x3,f(xnew)[int(coords5[0]):int(coords5[1])], kind="cubic")
+            xnew2=np.linspace(min(x3),max(x3), num=1000)
+            a2.plot(xnew2,g(xnew2))
+            peak=np.argmax(g(xnew2))
+            freq2+=[xnew2[peak]]    
+        freq2=np.array(freq2)
+        freq2=np.reciprocal(freq2/fs)
+        a2.set_xlabel("Number of Lags")
+        a2.set_ylabel("Autocorrelation score")
+        a3.hist(freq2, bins=int(np.mean(freq2)*0.01))
+        a3.set_xlabel("Frequency (Hz)")
+        a1.set_xlabel("Number of Lags")
+        a1.set_ylabel("Autocorrelation score")
+        a1.set_label(tellme("Now let's select the frequency. Key click (x2) for yes, mouse click for no")) #Here you will be asked to select a point in the peak that could represent the frequency (just to get an estimation)
+        gs.tight_layout(fig)
+        if not py.waitforbuttonpress(30):
+            py.close()
+            continue            
+        else:
+            py.waitforbuttonpress(30)
             while True:
                 freq = []
                 while len(freq) < 1:
                     tellme("Select the point for the frequency.")
                     freq = np.asarray(py.ginput(1, timeout=-1, show_clicks=True))
-                py.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="r")    
+                py.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="b")    
                 tellme("Happy? Key click for yes, mouse click for no")
-                if py.waitforbuttonpress():
-                    break    
-            py.close()
-            freq2=np.append(freq2,freq[:,0])
-    freq2=np.reciprocal(freq2/fs)
-    return freq2    
+                if py.waitforbuttonpress(30):
+                    break
+            freq3=freq[:,0]
+        print("Tone " + str(j) + " frequency = " + str(np.reciprocal(freq3/fs)[0]))    
