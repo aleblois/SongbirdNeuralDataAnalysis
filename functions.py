@@ -401,7 +401,7 @@ def psth(spikefile, motifile, fs):
 # n_iterations is the number of iterations for the bootstrapping
 #
 # fs is the sampling frequency
-def correlation(spikefile, motifile, n_iterations,fs):      
+def corrduration(spikefile, motifile, n_iterations,fs):      
     #Read and import mat file (new version)
     f=open(motifile, "r")
     imported = f.read().splitlines()
@@ -455,8 +455,9 @@ def correlation(spikefile, motifile, n_iterations,fs):
             s1=scipy.stats.shapiro(array[:,0])[1]
             s2=scipy.stats.shapiro(array[:,1])[1]
             s3=np.array([s1,s2])
+            s3=s3>alpha
             homo=scipy.stats.levene(array[:,0],array[:,1])[1]
-            if  s3.all() > alpha and homo > alpha: #test for normality
+            if  s3.all() == True and homo > alpha: #test for normality
                 final=scipy.stats.pearsonr(array[:,0],array[:,1]) #if this is used, outcome will have no clear name on it
                 statistics+=[[final[0],final[1]]]
                 # Bootstrapping
@@ -472,7 +473,7 @@ def correlation(spikefile, motifile, n_iterations,fs):
                     resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
                     res=scipy.stats.spearmanr(array[:,1],resample)
                     statistics+=[[res[0],res[1]]]
-            np.savetxt("Data_Boot_Corr_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
+            np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
             print("Syllable " + str(sybs[i]) +": " + str(final))                
 
           
@@ -589,11 +590,14 @@ def fft(songfile, beg, end, fs):
 # window_size is the size of the window for the convolve function (Envelopes)
 #
 # fs is the sampling rate   
-def pitch(songfile, motifile, lags, window_size,fs):  
-    #Read and import mat file (new version)
+def pitch(songfile, motifile, lags, window_size,fs,spikefile):
+    
+    #Read and import files that will be needed
+    spused=np.loadtxt(spikefile)
     song=np.load(songfile)
     f=open(motifile, "r")
     imported = f.read().splitlines()
+    premot= 0.05 #50ms in points
     #Excludes everything that is not a real syllable
     a=[] ; b=[] ; c=[] ; d=[]; e=[]
     arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
@@ -617,11 +621,13 @@ def pitch(songfile, motifile, lags, window_size,fs):
             
     arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:] 
     
+    #Will be used for interaction
     def tellme(s):
         print(s)
         py.title(s, fontsize=10)
         py.draw()
     
+    #Will filter which arra will be used
     answer=input("Which syllable?")
     if answer.lower() == "a":
         used=arra
@@ -632,6 +638,7 @@ def pitch(songfile, motifile, lags, window_size,fs):
     elif answer.lower() == "d":
         used=arrd
     
+    #Will be used for the visual inspection of the syllable
     def window_rms(inputSignal, window_size):
         a2 = np.power(inputSignal,2)
         window = np.ones(window_size)/float(window_size)
@@ -640,11 +647,12 @@ def pitch(songfile, motifile, lags, window_size,fs):
     #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
     fig, az = py.subplots()
     example=song[int(used[0][0]):int(used[0][1])]
+    tempo=np.linspace(used[0][0]/fs, used[0][1]/fs, len(example))
     abso=abs(example)
-    az.plot(example)
-    az.plot(abso)
+    az.plot(tempo,example)
+    az.plot(tempo,abso)
     rms=window_rms(np.ravel(example),window_size)
-    az.plot(rms)
+    az.plot(tempo[:len(rms)],rms)
     az.set_title("Click on graph to move on.")
     py.waitforbuttonpress(10)
     numcuts=int(input("Number of chunks?"))
@@ -652,12 +660,13 @@ def pitch(songfile, motifile, lags, window_size,fs):
     
     # Will provide you 4 random exmaples of syllables to stablish the cutting points
     coords2=[]
-    for i in range(4):           
-       i=random.randint(0,len(used)-1)
+    for j in range(4):           
+       j=random.randint(0,len(used)-1)
        fig, ax = py.subplots()
-       syb=song[int(used[i][0]):int(used[i][1])]
+       syb=song[int(used[j][0]):int(used[j][1])]
        abso=abs(syb)
        ax.plot(abso)
+       print(j)
        rms=window_rms(np.ravel(syb),window_size)
        ax.plot(rms)
        py.waitforbuttonpress(10)
@@ -673,20 +682,23 @@ def pitch(songfile, motifile, lags, window_size,fs):
        py.close()
        coords2=np.append(coords2,coords[:,0])
     
+    #Will keep the mean coordinates for the cuts
     coords2.sort()
     coords2=np.split(coords2,numcuts+1)
     means=[]
-    for i in range(len(coords2)):
-        means+=[int(np.mean(coords2[i]))]
+    for k in range(len(coords2)):
+        means+=[int(np.mean(coords2[k]))]
      
     # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
     py.plot(syb)
-    for j in range(1,len(means)):
-        py.plot(np.arange(means[j-1],means[j-1]+len(syb[means[j-1]:means[j]])),syb[means[j-1]:means[j]])   
+    for l in range(1,len(means)):
+        py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])   
 
     # Autocorrelation and Distribution 
-    freq3=[]
-    for j in range(1,len(means)):
+    for m in range(1,len(means)):
+        print(m)
+        spikespremot=[]
+        spikesdur=[]
         freq2=[]
         coords5=[]
         fig=py.figure()
@@ -694,9 +706,9 @@ def pitch(songfile, motifile, lags, window_size,fs):
         a2=fig.add_subplot(gs[0,0]) # First row, first column
         a3=fig.add_subplot(gs[0,1]) # First row, second column
         a1=fig.add_subplot(gs[1,:]) 
-        for i in range(len(used)):
-            syb=song[int(used[i][0]):int(used[i][1])]
-            sybcut=syb[means[j-1]:means[j]]
+        for n in range(len(used)):
+            syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
+            sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
             x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
             f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
             xnew=np.linspace(min(x2),max(x2), num=1000)
@@ -722,9 +734,9 @@ def pitch(songfile, motifile, lags, window_size,fs):
             coords5=coord[:,0]*10 # times ten is because of the linspace being 1000
             a1.clear()
         #From now it will use the coordinates of the peak to plot the distribution and the interpolated version of the peak    
-        for i in range(len(used)):
-            syb=song[int(used[i][0]):int(used[i][1])]
-            sybcut=syb[means[j-1]:means[j]]
+        for x in range(len(used)):
+            syb=song[int(used[x][0]):int(used[x][1])]
+            sybcut=syb[means[m-1]:means[m]]
             x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
             f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
             xnew=np.linspace(min(x2),max(x2), num=1000)
@@ -734,9 +746,76 @@ def pitch(songfile, motifile, lags, window_size,fs):
             xnew2=np.linspace(min(x3),max(x3), num=1000)
             a2.plot(xnew2,g(xnew2))
             peak=np.argmax(g(xnew2))
-            freq2+=[xnew2[peak]]    
+            freq2+=[xnew2[peak]]
+            beg=(used[x][0] + means[m-1])/fs
+            end=(used[x][0] + means[m])/fs
+            step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
+            step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
+            spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
+            spikesdur+=[[np.size(step2)/(end-beg)]]
+        statistics=[]
+        statistics2=[]
+        spikesdur=np.array(spikesdur)[:,0]
+        spikespremot=np.array(spikespremot)[:,0]
         freq2=np.array(freq2)
         freq2=np.reciprocal(freq2/fs)
+        total = np.column_stack((freq2,spikespremot,spikesdur))
+        an=input("Correlations?")
+        if an.lower() == "n":
+            pass
+        else:
+            n_iterations=int(input("Number of iterations for bootstrapping"))
+            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+            z = np.abs(scipy.stats.zscore(total))
+            total=total[(z < threshold).all(axis=1)]
+            alpha=0.05
+            s1=scipy.stats.shapiro(total[:,0])[1] #Pitch column
+            s2=scipy.stats.shapiro(total[:,1])[1] #Premot Column
+            s3=scipy.stats.shapiro(total[:,2])[1] #During tone column
+            homo=scipy.stats.levene(total[:,0],total[:,1])[1]
+            comb1=np.array([s1,s2,homo])
+            comb1=comb1>alpha
+            #This will get the data for Pitch vs Premotor
+            if  comb1.all() == True: #test for normality
+                final=scipy.stats.pearsonr(total[:,0],total[:,1]) #if this is used, outcome will have no clear name on it
+                statistics+=[[final[0],final[1]]]
+                # Bootstrapping
+                for q in range(n_iterations):
+                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
+                    res=scipy.stats.spearmanr(total[:,1],resample)
+                    statistics+=[[res[0],res[1]]]
+            else: 
+                final=scipy.stats.spearmanr(total[:,0],total[:,1]) #if this is used, outcome will have the name spearman on it
+                statistics+=[[final[0],final[1]]]
+                # Bootstrapping
+                for q in range(n_iterations):
+                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
+                    res=scipy.stats.spearmanr(total[:,1],resample)
+                    statistics+=[[res[0],res[1]]]
+            print(final)
+            np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics)
+            homo2=scipy.stats.levene(total[:,0],total[:,2])[1]
+            comb2=np.array([s1,s3,homo2])
+            comb2=comb2>alpha
+             #This will get the data for Pitch vs During 
+            if  comb1.all() == True: #test for normality
+                final2=scipy.stats.pearsonr(total[:,0],total[:,2]) #if this is used, outcome will have no clear name on it
+                statistics2+=[[final[0],final[1]]]
+                # Bootstrapping
+                for q in range(n_iterations):
+                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
+                    res=scipy.stats.spearmanr(total[:,2],resample)
+                    statistics2+=[[res[0],res[1]]]
+            else: 
+                final2=scipy.stats.spearmanr(total[:,0],total[:,2]) #if this is used, outcome will have the name spearman on it
+                statistics2+=[[final[0],final[1]]]
+                # Bootstrapping
+                for q in range(n_iterations):
+                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
+                    res=scipy.stats.spearmanr(total[:,2],resample)
+                    statistics2+=[[res[0],res[1]]]
+            print(final2)
+            np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2)        
         a2.set_xlabel("Number of Lags")
         a2.set_ylabel("Autocorrelation score")
         a3.hist(freq2, bins=int(np.mean(freq2)*0.01))
@@ -755,9 +834,13 @@ def pitch(songfile, motifile, lags, window_size,fs):
                 while len(freq) < 1:
                     tellme("Select the point for the frequency.")
                     freq = np.asarray(py.ginput(1, timeout=-1, show_clicks=True))
-                py.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="b")    
+                scat= a1.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="b") 
+                ann=a1.annotate(str(int(np.reciprocal(freq[:,0]/fs))) +" Hz", xy=(freq[:,0],freq[:,1]), xytext=(freq[:,0]*1.3,freq[:,1]*1.3),
+                            arrowprops=dict(facecolor='black', shrink=0.05))
+                            
                 tellme("Happy? Key click for yes, mouse click for no")
                 if py.waitforbuttonpress(30):
                     break
-            freq3=freq[:,0]
-        print("Tone " + str(j) + " frequency = " + str(np.reciprocal(freq3/fs)[0]))    
+                else:
+                    ann.remove()
+                    scat.remove()
