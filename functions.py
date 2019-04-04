@@ -447,34 +447,37 @@ def corrduration(spikefile, motifile, n_iterations,fs):
                 step1=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
                 array=np.append(array, np.array([[dur[j]],[np.size(step1)/dur[j]]]).reshape(-1,2), axis=0)
             array=array[1:]
-            #np.savetxt("Data_Corr_Dur_syb"+str(sybs[i])+".txt", array)
+            np.savetxt("Data_Raw_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", array)
+            alpha=0.05
             threshold = 3 #Standard Deviation threshold for Z score identification of outliers
             z = np.abs(scipy.stats.zscore(array))
             array=array[(z < threshold).all(axis=1)]
-            alpha=0.05
-            s1=scipy.stats.shapiro(array[:,0])[1]
-            s2=scipy.stats.shapiro(array[:,1])[1]
-            s3=np.array([s1,s2])
-            s3=s3>alpha
-            homo=scipy.stats.levene(array[:,0],array[:,1])[1]
-            if  s3.all() == True and homo > alpha: #test for normality
-                final=scipy.stats.pearsonr(array[:,0],array[:,1]) #if this is used, outcome will have no clear name on it
-                statistics+=[[final[0],final[1]]]
-                # Bootstrapping
-                for q in range(n_iterations):
-                    resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
-                    res=scipy.stats.spearmanr(array[:,1],resample)
-                    statistics+=[[res[0],res[1]]]
-            else: 
-                final=scipy.stats.spearmanr(array[:,0],array[:,1]) #if this is used, outcome will have the name spearman on it
-                statistics+=[[final[0],final[1]]]
-                # Bootstrapping
-                for x in range(n_iterations):
-                    resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
-                    res=scipy.stats.spearmanr(array[:,1],resample)
-                    statistics+=[[res[0],res[1]]]
-            np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
-            print("Syllable " + str(sybs[i]) +": " + str(final))                
+            if len(array)<3:
+                continue
+            else:               
+                s1=scipy.stats.shapiro(array[:,0])[1]
+                s2=scipy.stats.shapiro(array[:,1])[1]
+                s3=np.array([s1,s2])
+                s3=s3>alpha
+                homo=scipy.stats.levene(array[:,0],array[:,1])[1]
+                if  s3.all() == True and homo > alpha: #test for normality
+                    final=scipy.stats.pearsonr(array[:,0],array[:,1]) #if this is used, outcome will have no clear name on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(array[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                else: 
+                    final=scipy.stats.spearmanr(array[:,0],array[:,1]) #if this is used, outcome will have the name spearman on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for x in range(n_iterations):
+                        resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(array[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
+                print("Syllable " + str(sybs[i]) +": " + str(final))                
 
           
 ## 
