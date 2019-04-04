@@ -541,7 +541,7 @@ def getEnvelope(songfile, beg, end, window_size):
 # beg, end : are the index that would correspond to the beginning and the end of the motif/syllable (check syllables annotations file for that)
 #
 # fs is the sampling rate
-def fft(songfile, beg, end, fs):
+def powerspectrum(songfile, beg, end, fs):
     signal=np.load(songfile) #The song channel raw data
     signal=signal[beg:end] #I selected just one syllable A to test
     fs_rate = fs
@@ -666,7 +666,6 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
        syb=song[int(used[j][0]):int(used[j][1])]
        abso=abs(syb)
        ax.plot(abso)
-       print(j)
        rms=window_rms(np.ravel(syb),window_size)
        ax.plot(rms)
        py.waitforbuttonpress(10)
@@ -675,10 +674,12 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
            while len(coords) < numcuts+1:
                tellme("Select the points to cut with mouse")
                coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
-           py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
+           scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
            tellme("Happy? Key click for yes, mouse click for no")
            if py.waitforbuttonpress():
                break
+           else:
+               scat.remove()
        py.close()
        coords2=np.append(coords2,coords[:,0])
     
@@ -688,7 +689,8 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
     means=[]
     for k in range(len(coords2)):
         means+=[int(np.mean(coords2[k]))]
-     
+    np.savetxt("Mean_Cuts_Pitch_Syb"+answer+".txt", means) 
+    
     # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
     py.plot(syb)
     for l in range(1,len(means)):
@@ -696,7 +698,6 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
 
     # Autocorrelation and Distribution 
     for m in range(1,len(means)):
-        print(m)
         spikespremot=[]
         spikesdur=[]
         freq2=[]
@@ -727,12 +728,15 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
                 while len(coord) < 2:
                     tellme("Select the points for the peak.") #You should choose in the graph the range that representes the peak
                     coord = np.asarray(py.ginput(2, timeout=-1, show_clicks=True))
-                py.scatter(coord[:,0],coord[:,1], s=50, marker="X", zorder=10, c="b")
+                scat=a1.scatter(coord[:,0],coord[:,1], s=50, marker="X", zorder=10, c="b")
                 tellme("Happy? Key click for yes, mouse click for no")
                 if py.waitforbuttonpress(30):
                     break
+                else:
+                    scat.remove()
             coords5=coord[:,0]*10 # times ten is because of the linspace being 1000
             a1.clear()
+            
         #From now it will use the coordinates of the peak to plot the distribution and the interpolated version of the peak    
         for x in range(len(used)):
             syb=song[int(used[x][0]):int(used[x][1])]
@@ -760,62 +764,75 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
         freq2=np.array(freq2)
         freq2=np.reciprocal(freq2/fs)
         total = np.column_stack((freq2,spikespremot,spikesdur))
+        np.savetxt("Data_Raw_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m) + ".txt", total)
+        #Here it will give you the possibility of computing the correlations and Bootstrapping
         an=input("Correlations?")
         if an.lower() == "n":
             pass
         else:
             n_iterations=int(input("Number of iterations for bootstrapping"))
-            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
-            z = np.abs(scipy.stats.zscore(total))
-            total=total[(z < threshold).all(axis=1)]
             alpha=0.05
-            s1=scipy.stats.shapiro(total[:,0])[1] #Pitch column
-            s2=scipy.stats.shapiro(total[:,1])[1] #Premot Column
-            s3=scipy.stats.shapiro(total[:,2])[1] #During tone column
-            homo=scipy.stats.levene(total[:,0],total[:,1])[1]
-            comb1=np.array([s1,s2,homo])
-            comb1=comb1>alpha
-            #This will get the data for Pitch vs Premotor
-            if  comb1.all() == True: #test for normality
-                final=scipy.stats.pearsonr(total[:,0],total[:,1]) #if this is used, outcome will have no clear name on it
-                statistics+=[[final[0],final[1]]]
-                # Bootstrapping
-                for q in range(n_iterations):
-                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
-                    res=scipy.stats.spearmanr(total[:,1],resample)
-                    statistics+=[[res[0],res[1]]]
-            else: 
-                final=scipy.stats.spearmanr(total[:,0],total[:,1]) #if this is used, outcome will have the name spearman on it
-                statistics+=[[final[0],final[1]]]
-                # Bootstrapping
-                for q in range(n_iterations):
-                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
-                    res=scipy.stats.spearmanr(total[:,1],resample)
-                    statistics+=[[res[0],res[1]]]
-            print(final)
-            np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics)
-            homo2=scipy.stats.levene(total[:,0],total[:,2])[1]
-            comb2=np.array([s1,s3,homo2])
-            comb2=comb2>alpha
-             #This will get the data for Pitch vs During 
-            if  comb1.all() == True: #test for normality
-                final2=scipy.stats.pearsonr(total[:,0],total[:,2]) #if this is used, outcome will have no clear name on it
-                statistics2+=[[final[0],final[1]]]
-                # Bootstrapping
-                for q in range(n_iterations):
-                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
-                    res=scipy.stats.spearmanr(total[:,2],resample)
-                    statistics2+=[[res[0],res[1]]]
-            else: 
-                final2=scipy.stats.spearmanr(total[:,0],total[:,2]) #if this is used, outcome will have the name spearman on it
-                statistics2+=[[final[0],final[1]]]
-                # Bootstrapping
-                for q in range(n_iterations):
-                    resample=np.random.choice(total[:,0], len(total[:,0]), replace=True)
-                    res=scipy.stats.spearmanr(total[:,2],resample)
-                    statistics2+=[[res[0],res[1]]]
-            print(final2)
-            np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2)        
+            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+            total1=np.column_stack((freq2,spikespremot))
+            total2=np.column_stack((freq2,spikesdur))
+            z1 = np.abs(scipy.stats.zscore(total1))
+            z2 = np.abs(scipy.stats.zscore(total2))
+            total1=total1[(z1 < threshold).all(axis=1)]
+            total2=total2[(z2 < threshold).all(axis=1)]
+            if len(total1) < 3:
+                pass
+            else:
+                s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
+                s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
+                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                comb1=np.array([s1,s2,homo])
+                comb1=comb1>alpha
+                #This will get the data for Pitch vs Premotor
+                if  comb1.all() == True: #test for normality
+                    final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total1[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                else: 
+                    final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total1[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics)
+                print(final)
+            #This will get the data for Pitch vs During     
+            if len(total2) < 3:
+                pass
+            else:
+                s1=scipy.stats.shapiro(total2[:,0])[1] #Pitch column
+                s2=scipy.stats.shapiro(total2[:,1])[1] #Premot Column
+                homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
+                comb1=np.array([s1,s2,homo])
+                comb1=comb1>alpha
+                if  comb1.all() == True: #test for normality
+                    final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
+                    statistics2+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total2[:,1],resample)
+                        statistics2+=[[res[0],res[1]]]
+                else: 
+                    final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
+                    statistics2+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total2[:,1],resample)
+                        statistics2+=[[res[0],res[1]]]
+                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2)    
+                print(final)                  
         a2.set_xlabel("Number of Lags")
         a2.set_ylabel("Autocorrelation score")
         a3.hist(freq2, bins=int(np.mean(freq2)*0.01))
@@ -826,7 +843,7 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
         gs.tight_layout(fig)
         if not py.waitforbuttonpress(30):
             py.close()
-            continue            
+            #continue            
         else:
             py.waitforbuttonpress(30)
             while True:
@@ -835,7 +852,7 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
                     tellme("Select the point for the frequency.")
                     freq = np.asarray(py.ginput(1, timeout=-1, show_clicks=True))
                 scat= a1.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="b") 
-                ann=a1.annotate(str(int(np.reciprocal(freq[:,0]/fs))) +" Hz", xy=(freq[:,0],freq[:,1]), xytext=(freq[:,0]*1.3,freq[:,1]*1.3),
+                ann=a1.annotate(str(int(np.reciprocal(freq[:,0]/fs))) +" Hz", xy=(freq[:,0],freq[:,1]), xytext=(freq[:,0]*1.2,freq[:,1]*1.2),
                             arrowprops=dict(facecolor='black', shrink=0.05))
                             
                 tellme("Happy? Key click for yes, mouse click for no")
