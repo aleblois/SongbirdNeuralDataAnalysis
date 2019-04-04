@@ -846,7 +846,7 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
         gs.tight_layout(fig)
         if not py.waitforbuttonpress(30):
             py.close()
-            #continue            
+            continue            
         else:
             py.waitforbuttonpress(30)
             while True:
@@ -864,3 +864,239 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
                 else:
                     ann.remove()
                     scat.remove()
+                    
+
+def corramplitude(songfile, motifile, fs, spikefile, means=None):
+    
+    #Read and import files that will be needed
+    spused=np.loadtxt(spikefile)
+    song=np.load(songfile)
+    f=open(motifile, "r")
+    imported = f.read().splitlines()
+    premot= 0.05 #50ms in points
+    #Excludes everything that is not a real syllable
+    a=[] ; b=[] ; c=[] ; d=[]; e=[]
+    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
+    arrd=np.empty((1,2)); arre=np.empty((1,2))
+    for i in range(len(imported)):
+        if imported[i][-1] == "a":
+            a=[imported[i].split(",")]
+            arra=np.append(arra, np.array([int(a[0][0]), int(a[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "b": 
+            b=[imported[i].split(",")]
+            arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "c": 
+            c=[imported[i].split(",")]  
+            arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "d": 
+            d=[imported[i].split(",")] 
+            arrd=np.append(arrd, np.array([int(d[0][0]), int(d[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "e": 
+            e=[imported[i].split(",")]   
+            arre=np.append(arre, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
+            
+    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:] 
+    
+    #Will be used for interaction
+    def tellme(s):
+        print(s)
+        py.title(s, fontsize=10)
+        py.draw()
+    
+    #Will filter which arra will be used
+    answer=input("Which syllable?")
+    if answer.lower() == "a":
+        used=arra
+    elif answer.lower() == "b":
+        used=arrb
+    elif answer.lower() == "c":
+        used=arrc    
+    elif answer.lower() == "d":
+        used=arrd
+    
+    #Will be used for the visual inspection of the syllable
+    def smooth_data(inputSignal, smooth_win=10):
+        squared_song = np.power(inputSignal, 2)
+        len = np.round(fs * smooth_win / 1000).astype(int)
+        h = np.ones((len,)) / len
+        smooth = np.convolve(squared_song, h)
+        offset = round((smooth.shape[-1] - inputSignal.shape[-1]) / 2)
+        smooth = smooth[offset:inputSignal.shape[-1] + offset]
+        smooth = np.sqrt(smooth)
+        return smooth
+    
+    if means is not None:
+        means = np.loadtxt(means).astype(int)
+        syb=song[int(used[0][0]):int(used[0][1])]
+        pass
+    else: 
+        #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
+        fig, az = py.subplots()
+        example=song[int(used[0][0]):int(used[0][1])]
+        tempo=np.linspace(used[0][0]/fs, used[0][1]/fs, len(example))
+        abso=abs(example)
+        az.plot(tempo,example)
+        az.plot(tempo,abso)
+        smooth=smooth_data(np.ravel(example))
+        az.plot(tempo[:len(smooth)],smooth)
+        az.set_title("Click on graph to move on.")
+        py.waitforbuttonpress(10)
+        numcuts=int(input("Number of chunks?"))
+        py.close()
+        
+        # Will provide you 4 random exmaples of syllables to stablish the cutting points
+        coords2=[]
+        for j in range(4):           
+           j=random.randint(0,len(used)-1)
+           fig, ax = py.subplots()
+           syb=song[int(used[j][0]):int(used[j][1])]
+           abso=abs(syb)
+           ax.plot(abso)
+           smooth=smooth_data(np.ravel(example))
+           ax.plot(smooth)
+           py.waitforbuttonpress(10)
+           while True:
+               coords = []
+               while len(coords) < numcuts+1:
+                   tellme("Select the points to cut with mouse")
+                   coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
+               scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
+               tellme("Happy? Key click for yes, mouse click for no")
+               if py.waitforbuttonpress():
+                   break
+               else:
+                   scat.remove()
+           py.close()
+           coords2=np.append(coords2,coords[:,0])
+        
+        #Will keep the mean coordinates for the cuts
+        coords2.sort()
+        coords2=np.split(coords2,numcuts+1)
+        means=[]
+        for k in range(len(coords2)):
+            means+=[int(np.mean(coords2[k]))]
+        np.savetxt("Mean_Cuts_Amplitude_Syb"+answer+".txt", means) 
+    
+    # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user
+    py.plot(syb)
+    for l in range(1,len(means)):
+        py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])   
+
+    # Autocorrelation and Distribution 
+    for m in range(1,len(means)):
+        spikespremot=[]
+        spikesdur=[]
+        amps=[]
+        integ=[]
+        fig=py.figure()
+        gs=py.GridSpec(2,3)
+        a1=fig.add_subplot(gs[0,:]) # First row, first column
+        a2=fig.add_subplot(gs[1,0]) # First row, second column
+        a3=fig.add_subplot(gs[1,1])
+        a4=fig.add_subplot(gs[1,2])
+        statistics=[]
+        statistics2=[]
+        for n in range(len(used)):
+            syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
+            sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
+            smooth=smooth_data(np.ravel(sybcut))
+            beg=(used[n][0] + means[m-1])/fs
+            end=(used[n][0] + means[m])/fs
+            step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
+            step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
+            spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
+            spikesdur+=[[np.size(step2)/(end-beg)]]
+            amps+=[np.mean(smooth)]
+            integ+=[scipy.integrate.simps(smooth)]
+        a1.plot(abs(sybcut))
+        a1.set_title("Syllable " + answer + " Tone " + str(m))
+        a1.fill_between(np.arange(0,len(smooth),1), 0, smooth, zorder=10, color='b', alpha=0.1)
+        spikesdur=np.array(spikesdur)[:,0]
+        spikespremot=np.array(spikespremot)[:,0]
+        amps=np.array(amps)
+        integ=np.array(integ)
+        an2=input("Want to execute correlations with Means or Integration?")
+        if an2[0].lower() == "m":
+            total = np.column_stack((amps,spikespremot,spikesdur))
+            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m) + "_" + an2 + ".txt", total)
+            total1=np.column_stack((amps,spikespremot))
+            total2=np.column_stack((amps,spikesdur))
+            a2.hist(amps)
+            a2.set_title("Distribution of the Raw Means")
+        else:
+            total = np.column_stack((integ,spikespremot,spikesdur))
+            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_" + an2 + ".txt", total)
+            total1=np.column_stack((integ,spikespremot))
+            total2=np.column_stack((integ,spikesdur))
+            a2.hist(integ)
+            a2.set_title("Distribution of the Raw Integration")
+        #Here it will give you the possibility of computing the correlations and Bootstrapping
+        an=input("Correlations?")
+        if an.lower() == "n":
+            pass
+        else:
+            n_iterations=int(input("Number of iterations for bootstrapping"))
+            alpha=0.05
+            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+            z1 = np.abs(scipy.stats.zscore(total1))
+            z2 = np.abs(scipy.stats.zscore(total2))
+            total1=total1[(z1 < threshold).all(axis=1)]
+            total2=total2[(z2 < threshold).all(axis=1)]
+            if len(total1) < 3:
+                pass
+            else:
+                s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
+                s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
+                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                comb1=np.array([s1,s2,homo])
+                comb1=comb1>alpha
+                #This will get the data for Pitch vs Premotor
+                if  comb1.all() == True: #test for normality
+                    final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total1[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                else: 
+                    final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total1[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor_"+ an2 +".txt", statistics)
+                print(final)
+                a3.hist(np.array(statistics)[:,0])
+                a3.set_title("Bootstrap Correlation Values Premotor")
+            #This will get the data for Pitch vs During     
+            if len(total2) < 3:
+                pass
+            else:
+                s1=scipy.stats.shapiro(total2[:,0])[1] #Amplitude column
+                s2=scipy.stats.shapiro(total2[:,1])[1] #Premot Column
+                homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
+                comb1=np.array([s1,s2,homo])
+                comb1=comb1>alpha
+                if  comb1.all() == True: #test for normality
+                    final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
+                    statistics2+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total2[:,1],resample)
+                        statistics2+=[[res[0],res[1]]]
+                else: 
+                    final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
+                    statistics2+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total2[:,1],resample)
+                        statistics2+=[[res[0],res[1]]]
+                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_During_" + an2 + ".txt", statistics2)
+                a4.hist(np.array(statistics2)[:,0])
+                a4.set_title("Bootstrap Correlation Values During")
+                print(final)
