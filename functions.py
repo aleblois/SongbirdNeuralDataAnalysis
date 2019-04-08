@@ -1,10 +1,21 @@
-## @author: eduar
+## @author: Eduarda Centeno
 #  Documentation for this module.
 #
 #  Created on Wed Feb  6 15:06:12 2019; -*- coding: utf-8 -*-; 
 
-# Necessary packages
+
+#################################################################################################################################
+#################################################################################################################################
+# This code was built with the aim of allowing the user to work with Spike2 .smr files and further perfom correlation analyses ##
+# between specific acoustic features and neuronal activity.                                                                    ##
+# In our group we work with Zebra finches, recording their neuronal activity while they sing, so the parameters here might     ##
+# have to be ajusted to your specific data.                                                                                    ##                                                                                                                              ##
+#################################################################################################################################
+#################################################################################################################################
+
+### Necessary packages
 import neo
+import nolds
 import numpy as np
 import pylab as py
 import os
@@ -18,10 +29,99 @@ import scipy.interpolate
 import random
 from statsmodels.tsa.stattools import acf
 
-#file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
-#songfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
-#motifile="rawsong_06_05_2018_annot.txt" #Here you define what is the name of the file with the motif stamps/times
+### Example of files that one could use:
+"""
+ file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
+ songfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
+ motifile="rawsong_06_05_2018_annot.txt" #Here you define what is the name of the file with the motif stamps/times
 
+"""
+
+#############################################################################################################################
+# This block includes some functions that will be used several times in the code, but will not be individually documented:  #
+                                                                                                                            #
+def sortsyls(motifile):
+    #Read and import files that will be needed
+    f=open(motifile, "r")
+    imported = f.read().splitlines()
+    
+    #Excludes everything that is not a real syllable
+    a=[] ; b=[] ; c=[] ; d=[]; e=[]
+    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
+    arrd=np.empty((1,2)); arre=np.empty((1,2))
+    for i in range(len(imported)):
+        if imported[i][-1] == "a":
+            a=[imported[i].split(",")]
+            arra=np.append(arra, np.array([int(a[0][0]), int(a[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "b": 
+            b=[imported[i].split(",")]
+            arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "c": 
+            c=[imported[i].split(",")]  
+            arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "d": 
+            d=[imported[i].split(",")] 
+            arrd=np.append(arrd, np.array([int(d[0][0]), int(d[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "e": 
+            e=[imported[i].split(",")]   
+            arre=np.append(arre, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
+            
+    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]
+    return arra, arrb, arrc, arrd, arre
+
+def tellme(s):
+    print(s)
+    py.title(s, fontsize=10)
+    py.draw()
+
+
+def smoothed(inputSignal,fs, smooth_win=10):
+        squared_song = np.power(inputSignal, 2)
+        len = np.round(fs * smooth_win / 1000).astype(int)
+        h = np.ones((len,)) / len
+        smooth = np.convolve(squared_song, h)
+        offset = round((smooth.shape[-1] - inputSignal.shape[-1]) / 2)
+        smooth = smooth[offset:inputSignal.shape[-1] + offset]
+        smooth = np.sqrt(smooth)
+        return smooth
+
+""" The two following functions were obtained from 
+http://ceciliajarne.web.unq.edu.ar/investigacion/envelope_code/ """
+def window_rms(inputSignal, window_size):
+        a2 = np.power(inputSignal,2)
+        window = np.ones(window_size)/float(window_size)
+        return np.sqrt(np.convolve(a2, window, "valid"))
+    
+def getEnvelope(inputSignal, window_size):
+# Taking the absolute value
+
+    absoluteSignal = []
+    for sample in inputSignal:
+        absoluteSignal.append (abs (sample))
+
+    # Peak detection
+
+    intervalLength = window_size # change this number depending on your signal frequency content and time scale
+    outputSignal = []
+
+    for baseIndex in range (0, len (absoluteSignal)):
+        maximum = 0
+        for lookbackIndex in range (intervalLength):
+            maximum = max (absoluteSignal [baseIndex - lookbackIndex], maximum)
+        outputSignal.append (maximum)
+
+    return outputSignal
+###############################################################################################################################
+
+
+
+
+
+##############################################################################################################################
+# From now on there will be the core functions of this code, which will be individually documented:                          #
+                                                                                                                             #
+
+##
 ##
 # 
 # This  function will allow you to read the .smr files from Spike2.
@@ -174,20 +274,20 @@ def createsave(file):
     
 ## 
 #
-# This function will get and save the spikeshapes (.txt) from the LFP signal.
+# This function will get and save the spikeshapes (.txt) from the Raw unfiltered neuronal signal.
 #
 # Arguments:
 #
 # file is the .smr file
 #
-# LFPfile is the .npy file containing the LFP signal
+# raw is the .npy file containing the Raw unfiltered neuronal signal
 #
-# notLFPfile is the .npy containing the neuron data, but which of course is not the LFP nor the Song.    
-def spikeshapes(file, LFPfile, notLFPfile):
+# rawfiltered is the .npy containing the spike2 filtered neuronal signal    
+def spikeshapes(file, raw, rawfiltered):
     data, _= read(file)
     _, n_spike_trains, _, ansampling_rate = getinfo(file)
-    LFP=np.load(LFPfile)
-    notLFP=np.load(notLFPfile)
+    LFP=np.load(raw)
+    notLFP=np.load(rawfiltered)
     windowsize=int(ansampling_rate*2/1000) #Define here the number of points that suit your window (set to 2ms)
     # Create and save the spikeshapes
     # This part will iterate through all the .txt files containing the spiketimes inside the folder.
@@ -213,9 +313,9 @@ def spikeshapes(file, LFPfile, notLFPfile):
             window2=int(b1[0][1])
             py.fig,(s,s1) = py.subplots(2,1)
             s.plot(LFP[window1:window2])
-            s.set_title("SpikeShape from LFP")
+            s.set_title("SpikeShape from Raw Unfiltered")
             s1.plot(notLFP[window1+57:window2+57])
-            s1.set_title("SpikeShape not from LFP") # Just like you would see in Spike2
+            s1.set_title("SpikeShape from Raw Filtered Spike2") # Just like you would see in Spike2
             py.tight_layout()
             py.show()
  
@@ -224,26 +324,26 @@ def spikeshapes(file, LFPfile, notLFPfile):
 #
 # This function will downsample your LFP signal to 1000Hz and save it as .npy file
 def lfpdown(LFPfile): #LFPfile is the .npy one inside the new folder generated by the function createsave (for example, CSC1.npy)
-    ana=np.load(LFPfile)
+    rawsignal=np.load(LFPfile)
     def mma(series,window):
         return np.convolve(series,np.repeat(1,window)/window,"same")
     
-    s_ana=ana[0:][:,0] #window of the array
-    s_ana_1=mma(s_ana,100) #convolved version
+    rawsignal=rawsignal[0:][:,0] #window of the array, in case you want to select a specific part
+    conv=mma(rawsignal,100) #convolved version
     c=[]
-    for i in range(len(s_ana_1)):
+    for i in range(len(conv)):
         if i%32==0:
-            c+=[s_ana_1[i]]
+            c+=[conv[i]]
             
-    d=np.array(c)
-    np.save("LFPDownsampled", d)
+    downsamp=np.array(c)
+    np.save("LFPDownsampled", downsamp)
     answer=input("Want to see the plots? Might be a bit heavy. [Y/n]")
     if answer == "" or answer.lower()[0] == "y":
         py.fig,(s,s1) = py.subplots(2,1) 
-        s.plot(s_ana)
-        s.plot(s_ana_1)
+        s.plot(rawsignal)
+        s.plot(conv)
         s.set_title("Plot of RawSignal X Convolved Version")
-        s1.plot(d)
+        s1.plot(downsamp)
         s1.set_title("LFP Downsampled")
         py.show()
         py.tight_layout()
@@ -293,42 +393,18 @@ def spectrogram(songfile, beg, end, fs):
 #
 # fs is the sampling frequency    
 def psth(spikefile, motifile, fs):        
-    #Read and import mat file (new version)
-    f=open(motifile, "r")
-    imported = f.read().splitlines()
-    samplingrate=fs
-    #Excludes everything that is not a real syllable
-    a=[] ; b=[] ; c=[] ; d=[]; e=[]
-    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
-    arrd=np.empty((1,2)); arre=np.empty((1,2))
-    for i in range(len(imported)):
-        if imported[i][-1] == "a":
-            a=[imported[i].split(",")]
-            arra=np.append(arra, np.array([int(a[0][0])/samplingrate, int(a[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "b": 
-            b=[imported[i].split(",")]
-            arrb=np.append(arrb, np.array([int(b[0][0])/samplingrate, int(b[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "c": 
-            c=[imported[i].split(",")]  
-            arrc=np.append(arrc, np.array([int(c[0][0])/samplingrate, int(c[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "d": 
-            d=[imported[i].split(",")] 
-            arrd=np.append(arrd, np.array([int(d[0][0])/samplingrate, int(d[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "e": 
-            e=[imported[i].split(",")]   
-            arre=np.append(arre, np.array([int(e[0][0])/samplingrate, int(e[0][1])/samplingrate], float).reshape(1,2), axis=0)
-            
-    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]  
+    arra,arrb,arrc,arrd,arre=sortsyls(motifile)
+    arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
     #Starts to plot the PSTH
     spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
     binwidth=0.02
-    tes=0
+    correct=0
     sep=0
     adjust=0
     meandurall=0
     py.fig, ax = py.subplots(2,1)
-    k=[arra,arrb,arrc,arrd]
+    k=[arra,arrb,arrc,arrd] #considering only up to Syb D
     x2=[]
     y2=[]
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
@@ -357,7 +433,7 @@ def psth(spikefile, motifile, fs):
                 ax[1].scatter(spikes2,res+np.zeros(len(spikes2)),marker="|")
                 n0+=2
                 n1+=2
-                sep=0.08
+                sep=0.08 #This is important for separating the syllables properly in the plot
                 ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
                 ax[1].set_ylabel("Motif number")
                 ax[1].set_xlabel("Time [s]")
@@ -374,10 +450,10 @@ def psth(spikefile, motifile, fs):
             spikes=np.sort(np.concatenate(spikes3))
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
             ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left")
-            x2+=[x1[tes:]]
+            x2+=[x1[correct:]]
             y=np.append(y1,0)
-            y2+=[y[tes:]]
-            tes=2 #This is necessary for the proper execution of the interpolation
+            y2+=[y[correct:]]
+            correct=2 #This is necessary for the proper execution of the interpolation
     x2=np.concatenate(x2)
     x2=np.sort(x2)
     y2=np.concatenate(y2)
@@ -403,36 +479,14 @@ def psth(spikefile, motifile, fs):
 # fs is the sampling frequency
 def corrduration(spikefile, motifile, n_iterations,fs):      
     #Read and import mat file (new version)
-    f=open(motifile, "r")
-    imported = f.read().splitlines()
-    samplingrate=fs
-    #Excludes everything that is not a real syllable
-    a=[] ; b=[] ; c=[] ; d=[]; e=[]
     sybs=["A","B","C","D","E"]
-    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
-    arrd=np.empty((1,2)); arre=np.empty((1,2))
-    for i in range(len(imported)):
-        if imported[i][-1] == "a":
-            a=[imported[i].split(",")]
-            arra=np.append(arra, np.array([int(a[0][0])/samplingrate, int(a[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "b": 
-            b=[imported[i].split(",")]
-            arrb=np.append(arrb, np.array([int(b[0][0])/samplingrate, int(b[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "c": 
-            c=[imported[i].split(",")]  
-            arrc=np.append(arrc, np.array([int(c[0][0])/samplingrate, int(c[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "d": 
-            d=[imported[i].split(",")] 
-            arrd=np.append(arrd, np.array([int(d[0][0])/samplingrate, int(d[0][1])/samplingrate], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "e": 
-            e=[imported[i].split(",")]   
-            arre=np.append(arre, np.array([int(e[0][0])/samplingrate, int(e[0][1])/samplingrate], float).reshape(1,2), axis=0)
-            
-    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]
+    arra,arrb,arrc,arrd,arre=sortsyls(motifile)
+    arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
     dura=arra[:,1]-arra[:,0]; durb=arrb[:,1]-arrb[:,0];durc=arrc[:,1]-arrc[:,0]; durd=arrd[:,1]-arrd[:,0]; dure=arre[:,1]-arre[:,0]
+    
     #Starts to compute correlations and save the data into txt file (in case the user wants to use it in another software)
     spused=np.loadtxt(spikefile)
-    k=[arra,arrb,arrc,arrd]
+    k=[arra,arrb,arrc,arrd] #Here it includes only upto syllable D
     g=[dura,durb,durc,durd,dure]
     final=[]
     for i in range(len(k)):
@@ -447,7 +501,9 @@ def corrduration(spikefile, motifile, n_iterations,fs):
                 step1=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
                 array=np.append(array, np.array([[dur[j]],[np.size(step1)/dur[j]]]).reshape(-1,2), axis=0)
             array=array[1:]
+            
             np.savetxt("Data_Raw_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", array)
+            
             alpha=0.05
             threshold = 3 #Standard Deviation threshold for Z score identification of outliers
             z = np.abs(scipy.stats.zscore(array))
@@ -482,7 +538,7 @@ def corrduration(spikefile, motifile, n_iterations,fs):
           
 ## 
 #
-# This function allows you to get the envelope for song signal.
+# This function allows you to see the envelope for song signal.
 #
 # Arguments:
 #
@@ -491,35 +547,11 @@ def corrduration(spikefile, motifile, n_iterations,fs):
 # beg, end : are the index that would correspond to the beginning and the end of the motif/syllable (check syllables annotations file for that)
 #
 # window_size is the size of the window for the convolve function. 
-def getEnvelope(songfile, beg, end, window_size): 
+def plotEnvelopes(songfile, beg, end, window_size): 
     inputSignal=np.load(songfile)
     inputSignal=np.ravel(inputSignal[beg:end])
-    def window_rms(inputSignal, window_size):
-        a2 = np.power(inputSignal,2)
-        window = np.ones(window_size)/float(window_size)
-        return np.sqrt(np.convolve(a2, window, "valid"))
     
-    def getEnvelope(inputSignal):
-    # Taking the absolute value
-    
-        absoluteSignal = []
-        for sample in inputSignal:
-            absoluteSignal.append (abs (sample))
-    
-        # Peak detection
-    
-        intervalLength = window_size # change this number depending on your signal frequency content and time scale
-        outputSignal = []
-    
-        for baseIndex in range (0, len (absoluteSignal)):
-            maximum = 0
-            for lookbackIndex in range (intervalLength):
-                maximum = max (absoluteSignal [baseIndex - lookbackIndex], maximum)
-            outputSignal.append (maximum)
-    
-        return outputSignal
-    
-    outputSignal=getEnvelope(inputSignal)
+    outputSignal=getEnvelope(inputSignal, window_size)
     rms=window_rms(inputSignal, window_size)
     
     # Plots of the envelopes
@@ -547,16 +579,15 @@ def getEnvelope(songfile, beg, end, window_size):
 def powerspectrum(songfile, beg, end, fs):
     signal=np.load(songfile) #The song channel raw data
     signal=signal[beg:end] #I selected just one syllable A to test
-    fs_rate = fs
-    print ("Frequency sampling", fs_rate)
+    print ("Frequency sampling", fs)
     l_audio = len(signal.shape)
     if l_audio == 2:
         signal = signal.sum(axis=1) / 2
     N = signal.shape[0]
     print ("Complete Samplings N", N)
-    secs = N / float(fs_rate)
+    secs = N / float(fs)
     print ("secs", secs)
-    Ts = 1.0/fs_rate # sampling interval in time
+    Ts = 1.0/fs # sampling interval in time
     print ("Timestep between samples Ts", Ts)
     t = scipy.arange(0, secs, Ts) # time vector as scipy arange field / numpy.ndarray
     FFT = abs(scipy.fft(signal))**2 # if **2 is power spectrum, without is amplitude spectrum
@@ -564,15 +595,15 @@ def powerspectrum(songfile, beg, end, fs):
     freqs = scipy.fftpack.fftfreq(signal.size, t[1]-t[0])
     freqs_side = freqs[range(int(N/2))]
     py.subplot(311)
-    p1 = py.plot(t, signal, "g") # plotting the signal
+    py.plot(t, signal, "g") # plotting the signal
     py.xlabel("Time")
     py.ylabel("Amplitude")
     py.subplot(312)
-    p2 = py.plot(freqs, FFT, "r") # plotting the complete fft spectrum
+    py.plot(freqs, FFT, "r") # plotting the complete fft spectrum
     py.xlabel("Frequency (Hz)")
     py.ylabel("Count dbl-sided")
     py.subplot(313)
-    p3 = py.plot(freqs_side, abs(FFT_side), "b") # plotting the positive fft spectrum
+    py.plot(freqs_side, abs(FFT_side), "b") # plotting the positive fft spectrum
     py.xlabel("Frequency (Hz)")
     py.ylabel("Count single-sided")
     py.show()
@@ -590,45 +621,16 @@ def powerspectrum(songfile, beg, end, fs):
 #
 # lags is the number of lags for the autocorrelation
 #
-# window_size is the size of the window for the convolve function (Envelopes)
+# window_size is the size of the window for the convolve function (RMS of signal)
 #
 # fs is the sampling rate   
-def pitch(songfile, motifile, lags, window_size,fs,spikefile):
+def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
     
     #Read and import files that will be needed
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
-    f=open(motifile, "r")
-    imported = f.read().splitlines()
-    premot= 0.05 #50ms in points
-    #Excludes everything that is not a real syllable
-    a=[] ; b=[] ; c=[] ; d=[]; e=[]
-    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
-    arrd=np.empty((1,2)); arre=np.empty((1,2))
-    for i in range(len(imported)):
-        if imported[i][-1] == "a":
-            a=[imported[i].split(",")]
-            arra=np.append(arra, np.array([int(a[0][0]), int(a[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "b": 
-            b=[imported[i].split(",")]
-            arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "c": 
-            c=[imported[i].split(",")]  
-            arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "d": 
-            d=[imported[i].split(",")] 
-            arrd=np.append(arrd, np.array([int(d[0][0]), int(d[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "e": 
-            e=[imported[i].split(",")]   
-            arre=np.append(arre, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
-            
-    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:] 
-    
-    #Will be used for interaction
-    def tellme(s):
-        print(s)
-        py.title(s, fontsize=10)
-        py.draw()
+    premot= 0.05 #50ms
+    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
     
     #Will filter which arra will be used
     answer=input("Which syllable?")
@@ -641,58 +643,57 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
     elif answer.lower() == "d":
         used=arrd
     
-    #Will be used for the visual inspection of the syllable
-    def window_rms(inputSignal, window_size):
-        a2 = np.power(inputSignal,2)
-        window = np.ones(window_size)/float(window_size)
-        return np.sqrt(np.convolve(a2, window, "valid"))
-    
-    #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
-    fig, az = py.subplots()
-    example=song[int(used[0][0]):int(used[0][1])]
-    tempo=np.linspace(used[0][0]/fs, used[0][1]/fs, len(example))
-    abso=abs(example)
-    az.plot(tempo,example)
-    az.plot(tempo,abso)
-    rms=window_rms(np.ravel(example),window_size)
-    az.plot(tempo[:len(rms)],rms)
-    az.set_title("Click on graph to move on.")
-    py.waitforbuttonpress(10)
-    numcuts=int(input("Number of chunks?"))
-    py.close()
-    
-    # Will provide you 4 random exmaples of syllables to stablish the cutting points
-    coords2=[]
-    for j in range(4):           
-       j=random.randint(0,len(used)-1)
-       fig, ax = py.subplots()
-       syb=song[int(used[j][0]):int(used[j][1])]
-       abso=abs(syb)
-       ax.plot(abso)
-       rms=window_rms(np.ravel(syb),window_size)
-       ax.plot(rms)
-       py.waitforbuttonpress(10)
-       while True:
-           coords = []
-           while len(coords) < numcuts+1:
-               tellme("Select the points to cut with mouse")
-               coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
-           scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
-           tellme("Happy? Key click for yes, mouse click for no")
-           if py.waitforbuttonpress():
-               break
-           else:
-               scat.remove()
-       py.close()
-       coords2=np.append(coords2,coords[:,0])
-    
-    #Will keep the mean coordinates for the cuts
-    coords2.sort()
-    coords2=np.split(coords2,numcuts+1)
-    means=[]
-    for k in range(len(coords2)):
-        means+=[int(np.mean(coords2[k]))]
-    np.savetxt("Mean_Cuts_Pitch_Syb"+answer+".txt", means) 
+    if means is not None:
+        means = np.loadtxt(means).astype(int)
+        syb=song[int(used[0][0]):int(used[0][1])]
+        pass
+    else: 
+        #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
+        fig, az = py.subplots()
+        example=song[int(used[0][0]):int(used[0][1])]
+        tempo=np.linspace(used[0][0]/fs, used[0][1]/fs, len(example))
+        abso=abs(example)
+        az.plot(tempo,example)
+        az.plot(tempo,abso)
+        rms=window_rms(np.ravel(example),window_size)
+        az.plot(tempo[:len(rms)],rms)
+        az.set_title("Click on graph to move on.")
+        py.waitforbuttonpress(10)
+        numcuts=int(input("Number of chunks?"))
+        py.close()
+        
+        # Will provide you 4 random exmaples of syllables to stablish the cutting points
+        coords2=[]
+        for j in range(4):           
+           j=random.randint(0,len(used)-1)
+           fig, ax = py.subplots()
+           syb=song[int(used[j][0]):int(used[j][1])]
+           abso=abs(syb)
+           ax.plot(abso)
+           rms=window_rms(np.ravel(syb),window_size)
+           ax.plot(rms)
+           py.waitforbuttonpress(10)
+           while True:
+               coords = []
+               while len(coords) < numcuts+1:
+                   tellme("Select the points to cut with mouse")
+                   coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
+               scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
+               tellme("Happy? Key click for yes, mouse click for no")
+               if py.waitforbuttonpress():
+                   break
+               else:
+                   scat.remove()
+           py.close()
+           coords2=np.append(coords2,coords[:,0])
+        
+        #Will keep the mean coordinates for the cuts
+        coords2.sort()
+        coords2=np.split(coords2,numcuts+1)
+        means=[]
+        for k in range(len(coords2)):
+            means+=[int(np.mean(coords2[k]))]
+        np.savetxt("Mean_Cuts_Pitch_Syb"+answer+".txt", means) 
     
     # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
     py.plot(syb)
@@ -782,6 +783,7 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
             z2 = np.abs(scipy.stats.zscore(total2))
             total1=total1[(z1 < threshold).all(axis=1)]
             total2=total2[(z2 < threshold).all(axis=1)]
+            #This will get the data for Pitch vs Premotor
             if len(total1) < 3:
                 pass
             else:
@@ -790,7 +792,6 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
                 homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
-                #This will get the data for Pitch vs Premotor
                 if  comb1.all() == True: #test for normality
                     final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
                     statistics+=[[final[0],final[1]]]
@@ -814,7 +815,7 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
                 pass
             else:
                 s1=scipy.stats.shapiro(total2[:,0])[1] #Pitch column
-                s2=scipy.stats.shapiro(total2[:,1])[1] #Premot Column
+                s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
                 homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
@@ -865,44 +866,28 @@ def pitch(songfile, motifile, lags, window_size,fs,spikefile):
                     ann.remove()
                     scat.remove()
                     
-
+## 
+#
+# This function can be used to obtain the amplitude and its correlations of specific tones inside a syllable.
+# It will allow you to work with the means or the area under the curve (integration)
+#
+# Arguments:
+#
+# songfile is the .npy file containing the song signal.
+#
+# motifile is the .txt file containing the annotations of the beggining and end of each syllable/motif.
+#
+# fs is the sampling rate.
+#
+# means is the .txt that contains the cutting points for the tones. If None, it will allow you to create this list of means by visual inspection of plots. 
 def corramplitude(songfile, motifile, fs, spikefile, means=None):
     
     #Read and import files that will be needed
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
-    f=open(motifile, "r")
-    imported = f.read().splitlines()
-    premot= 0.05 #50ms in points
-    #Excludes everything that is not a real syllable
-    a=[] ; b=[] ; c=[] ; d=[]; e=[]
-    arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
-    arrd=np.empty((1,2)); arre=np.empty((1,2))
-    for i in range(len(imported)):
-        if imported[i][-1] == "a":
-            a=[imported[i].split(",")]
-            arra=np.append(arra, np.array([int(a[0][0]), int(a[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "b": 
-            b=[imported[i].split(",")]
-            arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "c": 
-            c=[imported[i].split(",")]  
-            arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "d": 
-            d=[imported[i].split(",")] 
-            arrd=np.append(arrd, np.array([int(d[0][0]), int(d[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "e": 
-            e=[imported[i].split(",")]   
-            arre=np.append(arre, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
-            
-    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:] 
-    
-    #Will be used for interaction
-    def tellme(s):
-        print(s)
-        py.title(s, fontsize=10)
-        py.draw()
-    
+    premot= 0.05 #50ms
+    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
+       
     #Will filter which arra will be used
     answer=input("Which syllable?")
     if answer.lower() == "a":
@@ -913,17 +898,6 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
         used=arrc    
     elif answer.lower() == "d":
         used=arrd
-    
-    #Will be used for the visual inspection of the syllable
-    def smooth_data(inputSignal, smooth_win=10):
-        squared_song = np.power(inputSignal, 2)
-        len = np.round(fs * smooth_win / 1000).astype(int)
-        h = np.ones((len,)) / len
-        smooth = np.convolve(squared_song, h)
-        offset = round((smooth.shape[-1] - inputSignal.shape[-1]) / 2)
-        smooth = smooth[offset:inputSignal.shape[-1] + offset]
-        smooth = np.sqrt(smooth)
-        return smooth
     
     if means is not None:
         means = np.loadtxt(means).astype(int)
@@ -937,7 +911,7 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
         abso=abs(example)
         az.plot(tempo,example)
         az.plot(tempo,abso)
-        smooth=smooth_data(np.ravel(example))
+        smooth=smoothed(np.ravel(example),fs)
         az.plot(tempo[:len(smooth)],smooth)
         az.set_title("Click on graph to move on.")
         py.waitforbuttonpress(10)
@@ -952,7 +926,7 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
            syb=song[int(used[j][0]):int(used[j][1])]
            abso=abs(syb)
            ax.plot(abso)
-           smooth=smooth_data(np.ravel(example))
+           smooth=smoothed(np.ravel(example),fs)
            ax.plot(smooth)
            py.waitforbuttonpress(10)
            while True:
@@ -999,7 +973,7 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
         for n in range(len(used)):
             syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
             sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
-            smooth=smooth_data(np.ravel(sybcut))
+            smooth=smoothed(np.ravel(sybcut),fs)
             beg=(used[n][0] + means[m-1])/fs
             end=(used[n][0] + means[m])/fs
             step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
@@ -1076,7 +1050,7 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
                 pass
             else:
                 s1=scipy.stats.shapiro(total2[:,0])[1] #Amplitude column
-                s2=scipy.stats.shapiro(total2[:,1])[1] #Premot Column
+                s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
                 homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
@@ -1100,3 +1074,263 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
                 a4.hist(np.array(statistics2)[:,0])
                 a4.set_title("Bootstrap Correlation Values During")
                 print(final)
+                
+##
+# This function computes the Spectral Entropy of a signal. 
+#The power spectrum is computed through fft. Then, it is normalised and assimilated to a probability density function.
+#
+# Arguments:
+#    ----------
+#    signal : list or array
+#        List or array of values.
+#    sampling_rate : int
+#        Sampling rate (samples/second).
+#    bands : list or array
+#        A list of numbers delimiting the bins of the frequency bands. If None the entropy is computed over the whole range of the DFT (from 0 to `f_s/2`).
+#
+#    Returns
+#    ----------
+#    spectral_entropy : float
+#        The spectral entropy as float value.
+def complexity_entropy_spectral(signal, sampling_rate, bands=None):
+    """
+    Based on the `pyrem <https://github.com/gilestrolab/pyrem>`_ repo by Quentin Geissmann.
+    
+    Example
+    ----------
+    >>> import neurokit as nk
+    >>>
+    >>> signal = np.sin(np.log(np.random.sample(666)))
+    >>> spectral_entropy = nk.complexity_entropy_spectral(signal, 1000)
+
+    Notes
+    ----------
+    *Details*
+
+    - **Spectral Entropy**: Entropy for different frequency bands.
+
+
+    *Authors*
+
+    - Quentin Geissmann (https://github.com/qgeissmann)
+
+    *Dependencies*
+
+    - numpy
+
+    *See Also*
+
+    - pyrem package: https://github.com/gilestrolab/pyrem
+    """
+
+    psd = np.abs(np.fft.rfft(signal))**2
+    psd /= np.sum(psd) # psd as a pdf (normalised to one)
+
+    if bands is None:
+        power_per_band= psd[psd>0]
+    else:
+        freqs = np.fft.rfftfreq(signal.size, 1/float(sampling_rate))
+        bands = np.asarray(bands)
+
+        freq_limits_low = np.concatenate([[0.0],bands])
+        freq_limits_up = np.concatenate([bands, [np.Inf]])
+
+        power_per_band = [np.sum(psd[np.bitwise_and(freqs >= low, freqs<up)])
+                for low,up in zip(freq_limits_low, freq_limits_up)]
+
+        power_per_band= np.array(power_per_band)[np.array(power_per_band) > 0]
+
+    spectral = - np.sum(power_per_band * np.log2(power_per_band))
+    return(spectral)
+
+## 
+#
+# This function can be used to obtain the spectral entropy and its correlations of specific tones inside a syllable.
+#
+# Arguments:
+#
+# songfile is the .npy file containing the song signal.
+#
+# motifile is the .txt file containing the annotations of the beggining and end of each syllable/motif.
+#
+# fs is the sampling rate
+#
+# means is the a .txt that contains the cutting points for the tones. If None, it will allow you to create this list of means by visual inspection of plots. 
+def corrspectral(songfile, motifile, fs, spikefile, means=None):
+    premot= 0.05 #50ms
+    spused=np.loadtxt(spikefile)
+    song=np.load(songfile)
+    
+    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
+    
+    #Will filter which arra will be used
+    answer=input("Which syllable?")
+    if answer.lower() == "a":
+        used=arra
+    elif answer.lower() == "b":
+        used=arrb
+    elif answer.lower() == "c":
+        used=arrc    
+    elif answer.lower() == "d":
+        used=arrd
+    
+    if means is not None:
+        means = np.loadtxt(means).astype(int)
+        syb=song[int(used[0][0]):int(used[0][1])]
+        pass
+    else: 
+        #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
+        fig, az = py.subplots()
+        example=song[int(used[0][0]):int(used[0][1])]
+        tempo=np.linspace(used[0][0]/fs, used[0][1]/fs, len(example))
+        abso=abs(example)
+        az.plot(tempo,example)
+        az.plot(tempo,abso)
+        smooth=smoothed(np.ravel(example), fs)
+        az.plot(tempo[:len(smooth)],smooth)
+        az.set_title("Click on graph to move on.")
+        py.waitforbuttonpress(10)
+        numcuts=int(input("Number of chunks?"))
+        py.close()
+        
+        # Will provide you 4 random exmaples of syllables to stablish the cutting points
+        coords2=[]
+        for j in range(4):           
+           j=random.randint(0,len(used)-1)
+           fig, ax = py.subplots()
+           syb=song[int(used[j][0]):int(used[j][1])]
+           abso=abs(syb)
+           ax.plot(abso)
+           smooth=smoothed(np.ravel(example),fs)
+           ax.plot(smooth)
+           py.waitforbuttonpress(10)
+           while True:
+               coords = []
+               while len(coords) < numcuts+1:
+                   tellme("Select the points to cut with mouse")
+                   coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
+               scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
+               tellme("Happy? Key click for yes, mouse click for no")
+               if py.waitforbuttonpress():
+                   break
+               else:
+                   scat.remove()
+           py.close()
+           coords2=np.append(coords2,coords[:,0])
+        
+        #Will keep the mean coordinates for the cuts
+        coords2.sort()
+        coords2=np.split(coords2,numcuts+1)
+        means=[]
+        for k in range(len(coords2)):
+            means+=[int(np.mean(coords2[k]))]
+        np.savetxt("Mean_Cuts_SpecEnt_Syb"+answer+".txt", means) 
+    
+    # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user
+    py.plot(syb)
+    for l in range(1,len(means)):
+        py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])   
+
+    # Autocorrelation and Distribution 
+    for m in range(1,len(means)):
+        spikespremot=[]
+        spikesdur=[]
+        specent=[]
+        fig=py.figure()
+        gs=py.GridSpec(1,3)
+        a2=fig.add_subplot(gs[0,0]) # First row, second column
+        a3=fig.add_subplot(gs[0,1])
+        a4=fig.add_subplot(gs[0,2])
+        statistics=[]
+        statistics2=[]
+        for n in range(len(used)):
+            syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
+            sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
+            SE=complexity_entropy_spectral(sybcut[:,0],fs)
+            beg=(used[n][0] + means[m-1])/fs
+            end=(used[n][0] + means[m])/fs
+            step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
+            step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
+            spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
+            spikesdur+=[[np.size(step2)/(end-beg)]]
+            specent+=[[SE]]
+        fig.suptitle("Syllable " + answer + " Tone " + str(m))
+        spikesdur=np.array(spikesdur)[:,0]
+        spikespremot=np.array(spikespremot)[:,0]
+        specent=np.array(specent)
+        total = np.column_stack((specent,spikespremot,spikesdur))
+        np.savetxt("Data_Raw_Corr_SpecEnt_Result_Syb" + answer + "_tone_" + str(m) + ".txt", total)
+        #Here it will give you the possibility of computing the correlations and Bootstrapping
+        an=input("Correlations?")
+        if an.lower() == "n":
+            pass
+        else:
+            n_iterations=int(input("Number of iterations for bootstrapping"))
+            alpha=0.05
+            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+            total1=np.column_stack((specent,spikespremot))
+            total2=np.column_stack((specent,spikesdur))
+            z1 = np.abs(scipy.stats.zscore(total1))
+            z2 = np.abs(scipy.stats.zscore(total2))
+            total1=total1[(z1 < threshold).all(axis=1)]
+            total2=total2[(z2 < threshold).all(axis=1)]
+            a2.hist(specent)
+            a2.set_title("Distribution of the Raw Spectral Entropy")
+            #This will get the data for Spectral Entropy vs Premotor
+            if len(total1) < 3:
+                pass
+            else:
+                s1=scipy.stats.shapiro(total1[:,0])[1] #Spectral Entropy column
+                s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
+                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                comb1=np.array([s1,s2,homo])
+                comb1=comb1>alpha
+                if  comb1.all() == True: #test for normality
+                    final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total1[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                else: 
+                    final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
+                    statistics+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total1[:,1],resample)
+                        statistics+=[[res[0],res[1]]]
+                np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics)
+                print(final)
+                a3.hist(np.array(statistics)[:,0])
+                a3.set_title("Bootstrap Correlation Values Premotor")
+            #This will get the data for Spectral Entropy vs During     
+            if len(total2) < 3:
+                pass
+            else:
+                s1=scipy.stats.shapiro(total2[:,0])[1] #Spectral Entropy column
+                s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
+                homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
+                comb1=np.array([s1,s2,homo])
+                comb1=comb1>alpha
+                if  comb1.all() == True: #test for normality
+                    final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
+                    statistics2+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total2[:,1],resample)
+                        statistics2+=[[res[0],res[1]]]
+                else: 
+                    final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
+                    statistics2+=[[final[0],final[1]]]
+                    # Bootstrapping
+                    for q in range(n_iterations):
+                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                        res=scipy.stats.spearmanr(total2[:,1],resample)
+                        statistics2+=[[res[0],res[1]]]
+                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2)    
+                print(final)
+                a4.hist(np.array(statistics2)[:,0])
+                a4.set_title("Bootstrap Correlation Values During")
