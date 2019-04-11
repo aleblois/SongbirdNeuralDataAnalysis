@@ -8,11 +8,18 @@ have to be ajusted to your own specific data.
 Software and documentation are located at . This is a free software released under the GNU General Public License v3.0.
 
 Requires:
+
     * python 3.x
+    
     * neo 0.7.1    (https://neo.readthedocs.io/en/0.7.1/)
+    
     * matplotlib 3.0.2   
+    
     * numpy 1.15.4
+    
     * scipy 1.1.0
+    
     * pandas 0.23.4
+    
     * statsmodels 0.9.0
     
