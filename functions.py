@@ -392,7 +392,7 @@ def spectrogram(songfile, beg, end, fs):
 # motifile is the .txt file containing the annotations of the beggining and end of each syllable/motif.
 #
 # fs is the sampling frequency    
-def psth(spikefile, motifile, fs):        
+def psth(spikefile, motifile, fs, basebeg, basend):        
     arra,arrb,arrc,arrd,arre=sortsyls(motifile)
     arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
     #Starts to plot the PSTH
@@ -407,6 +407,7 @@ def psth(spikefile, motifile, fs):
     k=[arra,arrb,arrc,arrd] #considering only up to Syb D
     x2=[]
     y2=[]
+    basespk=[]
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
     for i in range(len(k)):
             used=k[i] # sets which array from k will be used.
@@ -449,7 +450,7 @@ def psth(spikefile, motifile, fs):
                         labelbottom=False)
             spikes=np.sort(np.concatenate(spikes3))
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
-            ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left")
+            #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left")
             x2+=[x1[correct:]]
             y=np.append(y1,0)
             y2+=[y[correct:]]
@@ -457,9 +458,19 @@ def psth(spikefile, motifile, fs):
     x2=np.concatenate(x2)
     x2=np.sort(x2)
     y2=np.concatenate(y2)
+    basecuts=np.linspace(basebeg,basend,10)
+    for l in range(1,len(basecuts)):
+        test2=spused[np.where(np.logical_and(spused >= basecuts[l-1], spused <= basecuts[l]) == True)]
+        basespk+=[len(test2)/(basecuts[i]-basecuts[i-1])]
+    basemean=np.mean(basespk)
+    basestd=np.std(basespk)    
     f = scipy.interpolate.interp1d(x2, y2, kind="cubic")
     xnew=np.linspace(min(x2),max(x2), num=1000)
     ax[0].plot(xnew,f(xnew), color="r")
+    ax[0].plot(x2,np.ones((len(x2),))*basemean, color = "g", label = "Mean")
+    ax[0].plot(x2,np.ones((len(x2),))*(basemean+basestd), color = "black", label = "+STD")
+    ax[0].plot(x2,np.ones((len(x2),))*(basemean-basestd), color = "black", ls="dashed", label="-STD")
+    ax[0].legend(loc="upper right")
     py.fig.subplots_adjust(hspace=0)
 
     
@@ -783,8 +794,10 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
             z2 = np.abs(scipy.stats.zscore(total2))
             total1=total1[(z1 < threshold).all(axis=1)]
             total2=total2[(z2 < threshold).all(axis=1)]
+            a = total1[:,1] == 0
+            b = total2[:,1] == 0
             #This will get the data for Pitch vs Premotor
-            if len(total1) < 3:
+            if len(total1) < 3 or all(a) == True:
                 pass
             else:
                 s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
@@ -811,7 +824,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
                 np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics)
                 print(final)
             #This will get the data for Pitch vs During     
-            if len(total2) < 3:
+            if len(total2) < 3 or all(b) == True:
                 pass
             else:
                 s1=scipy.stats.shapiro(total2[:,0])[1] #Pitch column
@@ -1016,7 +1029,9 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
             z2 = np.abs(scipy.stats.zscore(total2))
             total1=total1[(z1 < threshold).all(axis=1)]
             total2=total2[(z2 < threshold).all(axis=1)]
-            if len(total1) < 3:
+            a = total1[:,1] == 0
+            b = total2[:,1] == 0
+            if len(total1) < 3 or all(a) == True:
                 pass
             else:
                 s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
@@ -1046,7 +1061,7 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
                 a3.hist(np.array(statistics)[:,0])
                 a3.set_title("Bootstrap Correlation Values Premotor")
             #This will get the data for Pitch vs During     
-            if len(total2) < 3:
+            if len(total2) < 3 or all(b) == True:
                 pass
             else:
                 s1=scipy.stats.shapiro(total2[:,0])[1] #Amplitude column
@@ -1274,10 +1289,12 @@ def corrspectral(songfile, motifile, fs, spikefile, means=None):
             z2 = np.abs(scipy.stats.zscore(total2))
             total1=total1[(z1 < threshold).all(axis=1)]
             total2=total2[(z2 < threshold).all(axis=1)]
+            a = total1[:,1] == 0
+            b = total2[:,1] == 0
             a2.hist(specent)
             a2.set_title("Distribution of the Raw Spectral Entropy")
             #This will get the data for Spectral Entropy vs Premotor
-            if len(total1) < 3:
+            if len(total1) < 3 or all(a) == True:
                 pass
             else:
                 s1=scipy.stats.shapiro(total1[:,0])[1] #Spectral Entropy column
@@ -1306,7 +1323,7 @@ def corrspectral(songfile, motifile, fs, spikefile, means=None):
                 a3.hist(np.array(statistics)[:,0])
                 a3.set_title("Bootstrap Correlation Values Premotor")
             #This will get the data for Spectral Entropy vs During     
-            if len(total2) < 3:
+            if len(total2) < 3 or all(b) == True:
                 pass
             else:
                 s1=scipy.stats.shapiro(total2[:,0])[1] #Spectral Entropy column
