@@ -391,7 +391,11 @@ def spectrogram(songfile, beg, end, fs):
 #
 # motifile is the .txt file containing the annotations of the beggining and end of each syllable/motif.
 #
-# fs is the sampling frequency    
+# fs is the sampling frequency
+#
+# basebeg is the start time for baseline computation
+#
+# basend is the end time for baseline computation    
 def psth(spikefile, motifile, fs, basebeg, basend):        
     arra,arrb,arrc,arrd,arre=sortsyls(motifile)
     arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
