@@ -84,6 +84,26 @@ def smoothed(inputSignal,fs, smooth_win=10):
         smooth = smooth[offset:inputSignal.shape[-1] + offset]
         smooth = np.sqrt(smooth)
         return smooth
+    
+    
+#Fast loop to check visually if the syllables are ok. I've been finding problems in A syllables, so I recommend checking always before analysis.
+def checksyls(songfile,motifile, ):
+    arra, arrb, arrc, arrd, arre= sortsyls(motifile)
+    song=np.load(songfile)
+    #Will filter which arra will be used
+    answer=input("Which syllable?")
+    if answer.lower() == "a":
+        used=arra
+    elif answer.lower() == "b":
+        used=arrb
+    elif answer.lower() == "c":
+        used=arrc    
+    elif answer.lower() == "d":
+        used=arrd
+        
+    for i in used:
+        py.figure()
+        py.plot(song[int(i[0]):int(i[1])])
 
 """ The two following functions were obtained from 
 http://ceciliajarne.web.unq.edu.ar/investigacion/envelope_code/ """
@@ -259,7 +279,7 @@ def createsave(file):
     spk=["Number of SpikeTrains: " + str(n_spike_trains)]    
     for l in range(n_analog_signals, n_spike_trains + n_analog_signals):
         spkid = str(data.children_recur[l].annotations["id"])
-        spkcreated = str(data.children_recur[i].annotations["comment"])
+        spkcreated = str(data.children_recur[l].annotations["comment"])
         spkname= str(data.children_recur[l].name)
         spksize = str(data.children_recur[l].size)
         spkunit = str(data.children_recur[l].units).split(" ")[1]
