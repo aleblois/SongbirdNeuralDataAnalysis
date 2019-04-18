@@ -741,7 +741,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
         spikesdur=[]
         freq2=[]
         coords5=[]
-        fig=py.figure()
+        fig=py.figure(figsize=(18,15))
         gs=py.GridSpec(2,2)
         a2=fig.add_subplot(gs[0,0]) # First row, first column
         a3=fig.add_subplot(gs[0,1]) # First row, second column
@@ -883,6 +883,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
         a1.set_label(tellme("Now let's select the frequency. Key click (x2) for yes, mouse click for no")) #Here you will be asked to select a point in the peak that could represent the frequency (just to get an estimation)
         gs.tight_layout(fig)
         if not py.waitforbuttonpress(30):
+            py.savefig("Corr_Pitch_syb"+ answer +"_tone"+ str(m)+".tif")
             py.close()
             continue            
         else:
@@ -898,11 +899,12 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
                             
                 tellme("Happy? Key click for yes, mouse click for no")
                 if py.waitforbuttonpress(30):
+                    py.savefig("Corr_Pitch_syb"+ answer +"_tone"+ str(m)+".tif")
                     break
                 else:
                     ann.remove()
                     scat.remove()
-                    
+			        
 ## 
 #
 # This function can be used to obtain the amplitude and its correlations of specific tones inside a syllable.
@@ -917,7 +919,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
 # fs is the sampling rate.
 #
 # means is the .txt that contains the cutting points for the tones. If None, it will allow you to create this list of means by visual inspection of plots. 
-def corramplitude(songfile, motifile, fs, spikefile, means=None):
+def corramplitude(songfile, motifile, fs, spikefile, window_size, means=None):
     
     #Read and import files that will be needed
     spused=np.loadtxt(spikefile)
@@ -963,8 +965,8 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
            syb=song[int(used[j][0]):int(used[j][1])]
            abso=abs(syb)
            ax.plot(abso)
-           smooth=smoothed(np.ravel(example),fs)
-           ax.plot(smooth)
+           rms=window_rms(np.ravel(syb),window_size)
+           ax.plot(rms)
            py.waitforbuttonpress(10)
            while True:
                coords = []
@@ -994,12 +996,13 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
         py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])   
 
     # Autocorrelation and Distribution 
+    an2=input("Want to execute correlations with Means or Integration?")
     for m in range(1,len(means)):
         spikespremot=[]
         spikesdur=[]
         amps=[]
         integ=[]
-        fig=py.figure()
+        fig=py.figure(figsize=(18,15))
         gs=py.GridSpec(2,3)
         a1=fig.add_subplot(gs[0,:]) # First row, first column
         a2=fig.add_subplot(gs[1,0]) # First row, second column
@@ -1026,7 +1029,6 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
         spikespremot=np.array(spikespremot)[:,0]
         amps=np.array(amps)
         integ=np.array(integ)
-        an2=input("Want to execute correlations with Means or Integration?")
         if an2[0].lower() == "m":
             total = np.column_stack((amps,spikespremot,spikesdur))
             np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m) + "_" + an2 + ".txt", total)
@@ -1113,7 +1115,7 @@ def corramplitude(songfile, motifile, fs, spikefile, means=None):
                 a4.hist(np.array(statistics2)[:,0])
                 a4.set_title("Bootstrap Correlation Values During")
                 print(final)
-                
+                py.savefig(fname="Corr_Amplitude_syb"+ answer +"_tone"+ str(m) +".tif")
 ##
 # This function computes the Spectral Entropy of a signal. 
 #The power spectrum is computed through fft. Then, it is normalised and assimilated to a probability density function.
@@ -1195,7 +1197,7 @@ def complexity_entropy_spectral(signal, sampling_rate, bands=None):
 # fs is the sampling rate
 #
 # means is the a .txt that contains the cutting points for the tones. If None, it will allow you to create this list of means by visual inspection of plots. 
-def corrspectral(songfile, motifile, fs, spikefile, means=None):
+def corrspectral(songfile, motifile, fs, spikefile, window_size, means=None):
     premot= 0.05 #50ms
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
@@ -1240,8 +1242,8 @@ def corrspectral(songfile, motifile, fs, spikefile, means=None):
            syb=song[int(used[j][0]):int(used[j][1])]
            abso=abs(syb)
            ax.plot(abso)
-           smooth=smoothed(np.ravel(example),fs)
-           ax.plot(smooth)
+           rms=window_rms(np.ravel(syb),window_size)
+           ax.plot(rms)
            py.waitforbuttonpress(10)
            while True:
                coords = []
@@ -1275,7 +1277,7 @@ def corrspectral(songfile, motifile, fs, spikefile, means=None):
         spikespremot=[]
         spikesdur=[]
         specent=[]
-        fig=py.figure()
+        fig=py.figure(figsize=(18,15))
         gs=py.GridSpec(1,3)
         a2=fig.add_subplot(gs[0,0]) # First row, second column
         a3=fig.add_subplot(gs[0,1])
@@ -1375,3 +1377,4 @@ def corrspectral(songfile, motifile, fs, spikefile, means=None):
                 print(final)
                 a4.hist(np.array(statistics2)[:,0])
                 a4.set_title("Bootstrap Correlation Values During")
+                py.savefig("Corr_SpecEnt_syb"+ answer +"_tone"+ str(m)+".tif")
