@@ -300,7 +300,7 @@ def createsave(file):
     
     spk=["Number of SpikeTrains: " + str(n_spike_trains)]    
     for l in range(n_analog_signals, n_spike_trains + n_analog_signals):
-        spkid = str(data.children_recur[l].annotations["id"])          
+        spkid = str(data.children_recur[l].annotations["id"])     
         spkcreated = str(data.children_recur[l].annotations["comment"])
         spkname= str(data.children_recur[l].name)
         spksize = str(data.children_recur[l].size)
@@ -337,7 +337,7 @@ def spikeshapes(file, raw, rawfiltered):
     for m in range(n_spike_trains):
         Chprov1 = data.list_units[m].annotations["id"]
         Label1 = Chprov1.split("#")[1]
-        channel1 = np.loadtxt(Chprov1+".txt")    
+        channel1 = np.loadtxt(Chprov1+".txt")
         print(Chprov1)
         print("Starting to get the spikeshapes... Grab a book or something, this might take a while!")
         x1=np.empty([1,windowsize+2],int)
