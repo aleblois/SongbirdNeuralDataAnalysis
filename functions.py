@@ -18,8 +18,8 @@ import neo
 import nolds
 import numpy as np
 import pylab as py
-import os
 import datetime
+import os
 import pandas
 import scipy.io
 import scipy.signal
@@ -33,7 +33,7 @@ from statsmodels.tsa.stattools import acf
 """
  file="CSC1_light_LFPin.smr" #Here you define the .smr file that will be analysed
  songfile="CSC10.npy" #Here you define which is the file with the raw signal of the song
- motifile="rawsong_06_05_2018_annot.txt" #Here you define what is the name of the file with the motif stamps/times
+ motifile="labels.txt" #Here you define what is the name of the file with the motif stamps/times
 
 """
 
@@ -248,14 +248,36 @@ def createsave(file):
     #Create DataFrame (LFP should be indicated by the subject) and SpikeTime files
     res=[]
     LFP = input("Enter LFP number:")
-    for i in range(n_spike_trains):
-        Chprov = data.list_units[i].annotations["id"]
-        Chprov2 = Chprov.split("#")[0]
-        Ch = Chprov2.split("ch")[1]                     
-        Label = Chprov.split("#")[1]
-        res += [[int(Ch), int(Label), int(LFP)]]
-        df = pandas.DataFrame(data=res, columns= ["Channel", "Label", "LFP number"])
-        np.savetxt(Chprov+".txt", data_seg.spiketrains[i].as_array()) #Creates files with the Spiketimes.
+    if os.path.isfile("..//unitswindow.txt"):
+        for i in range(n_spike_trains):
+            Chprov = data.list_units[i].annotations["id"]
+            Chprov2 = Chprov.split("#")[0]
+            Ch = Chprov2.split("ch")[1]                     
+            Label = Chprov.split("#")[1]
+            res += [[int(Ch), int(Label), int(LFP)]]
+            df = pandas.DataFrame(data=res, columns= ["Channel", "Label", "LFP number"])
+            with open("..\\unitswindow.txt", "r") as datafile:
+                s=datafile.read().split()
+            d=s[0::3]
+            x=np.array(s).reshape((-1,3))
+            if Chprov in d and x.size >=3:
+                arr= data_seg.spiketrains[i].as_array()
+                where=d.index(Chprov)
+                windowbeg=int(x[where][1])
+                windowend=int(x[where][2])
+                tosave= arr[np.where(np.logical_and(arr >= windowbeg , arr <= windowend) == True)]
+                np.savetxt(Chprov+".txt", tosave) #Creates files with the Spiketimes.
+            else:
+                np.savetxt(Chprov+".txt", data_seg.spiketrains[i].as_array())
+    else:
+        for i in range(n_spike_trains):
+            Chprov = data.list_units[i].annotations["id"]
+            Chprov2 = Chprov.split("#")[0]
+            Ch = Chprov2.split("ch")[1]                     
+            Label = Chprov.split("#")[1]
+            res += [[int(Ch), int(Label), int(LFP)]]
+            df = pandas.DataFrame(data=res, columns= ["Channel", "Label", "LFP number"])
+            np.savetxt(Chprov+".txt", data_seg.spiketrains[i].as_array()) #Creates files with the Spiketimes.
         
     print(df)
     file = open("Channels_Label_LFP.txt", "w+")
@@ -278,7 +300,7 @@ def createsave(file):
     
     spk=["Number of SpikeTrains: " + str(n_spike_trains)]    
     for l in range(n_analog_signals, n_spike_trains + n_analog_signals):
-        spkid = str(data.children_recur[l].annotations["id"])
+        spkid = str(data.children_recur[l].annotations["id"])          
         spkcreated = str(data.children_recur[l].annotations["comment"])
         spkname= str(data.children_recur[l].name)
         spksize = str(data.children_recur[l].size)
@@ -315,7 +337,7 @@ def spikeshapes(file, raw, rawfiltered):
     for m in range(n_spike_trains):
         Chprov1 = data.list_units[m].annotations["id"]
         Label1 = Chprov1.split("#")[1]
-        channel1 = np.loadtxt(Chprov1+".txt")
+        channel1 = np.loadtxt(Chprov1+".txt")    
         print(Chprov1)
         print("Starting to get the spikeshapes... Grab a book or something, this might take a while!")
         x1=np.empty([1,windowsize+2],int)
@@ -524,6 +546,7 @@ def corrduration(spikefile, motifile, n_iterations,fs):
     k=[arra,arrb,arrc,arrd] #Here it includes only upto syllable D
     g=[dura,durb,durc,durd,dure]
     final=[]
+    f = open("SummaryDuration.txt", "w+")
     for i in range(len(k)):
             used=k[i]
             dur=g[i]
@@ -568,8 +591,8 @@ def corrduration(spikefile, motifile, n_iterations,fs):
                         res=scipy.stats.spearmanr(array[:,1],resample)
                         statistics+=[[res[0],res[1]]]
                 np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
-                print("Syllable " + str(sybs[i]) +": " + str(final))                
-
+                print("Syllable " + str(sybs[i]) +": " + str(final))
+                f.writelines("Syllable " + str(sybs[i]) +": " + str(final) + "\n")
           
 ## 
 #
@@ -728,7 +751,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None):
         means=[]
         for k in range(len(coords2)):
             means+=[int(np.mean(coords2[k]))]
-        np.savetxt("Mean_Cuts_Pitch_Syb"+answer+".txt", means) 
+        np.savetxt("Mean_cut_syb"+answer+".txt", means) 
     
     # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
     py.plot(syb)
@@ -988,7 +1011,7 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, means=None):
         means=[]
         for k in range(len(coords2)):
             means+=[int(np.mean(coords2[k]))]
-        np.savetxt("Mean_Cuts_Amplitude_Syb"+answer+".txt", means) 
+        np.savetxt("Mean_cut_syb"+answer+".txt", means) 
     
     # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user
     py.plot(syb)
@@ -1265,7 +1288,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, means=None):
         means=[]
         for k in range(len(coords2)):
             means+=[int(np.mean(coords2[k]))]
-        np.savetxt("Mean_Cuts_SpecEnt_Syb"+answer+".txt", means) 
+        np.savetxt("Mean_cut_syb"+answer+".txt", means) 
     
     # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user
     py.plot(syb)
