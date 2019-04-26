@@ -18,6 +18,7 @@ import neo
 import nolds
 import numpy as np
 import pylab as py
+import matplotlib.lines as mlines
 import datetime
 import os
 import pandas
