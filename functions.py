@@ -520,6 +520,10 @@ def psth(spikefile, motifile, fs, basebeg, basend):
     ax[0].plot(xnew,f(xnew), color="r")
     #ax[0].legend(loc="upper right")
     py.fig.subplots_adjust(hspace=0)
+    black_line = mlines.Line2D([], [], color='black', label='+STD')
+    black_dashed  = mlines.Line2D([], [], color='black', label='+STD', linestyle="--")
+    green_line  = mlines.Line2D([], [], color='green', label='Mean')
+    ax[0].legend(handles=[black_line,black_dashed,green_line], loc="upper left")
     
 
     
