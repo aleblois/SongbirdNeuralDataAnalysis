@@ -26,6 +26,7 @@ import nolds
 import numpy as np
 import pylab as py
 import os
+import matplotlib.lines as mlines
 import pandas
 import scipy.io
 import scipy.signal
@@ -446,23 +447,23 @@ def psth(spikefile, motifile, fs, basebeg, basend):
     shoulder= 0.05 #50 ms
     binwidth=0.02
     correct=0
-    sep=0
     adjust=0
+    adj2=0
     meandurall=0
     py.fig, ax = py.subplots(2,1)
     k=[arra,arrb,arrc,arrd] #considering only up to Syb D
     x2=[]
     y2=[]
-    basespk=[]
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
     for i in range(len(k)):
             used=k[i] # sets which array from k will be used.
-            adjust+=meandurall+sep
             meandurall=np.mean(used[:,1]-used[:,0])
             spikes1=[]
             res=-1
             spikes=[]
+            basespk=[]
             n0,n1=0,2
+            
             for j in range(len(used)):
                 step1=[]
                 step2=[]
@@ -475,18 +476,16 @@ def psth(spikefile, motifile, fs, basebeg, basend):
                 spikes1+=[step2+adjust,step3+adjust]
                 res=res+1
                 spikes2=spikes1
-                spikes3=spikes1
-                spikes2=np.concatenate(spikes2[n0:n1])
-                ax[1].scatter(spikes2,res+np.zeros(len(spikes2)),marker="|")
+                spikes3=np.concatenate(spikes2[n0:n1]) # Gets the step2 and step3 arrays for scatter
+                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|")
                 n0+=2
                 n1+=2
-                sep=0.08 #This is important for separating the syllables properly in the plot
                 ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
                 ax[1].set_ylabel("Motif number")
                 ax[1].set_xlabel("Time [s]")
                 normfactor=len(used)*binwidth
                 ax[0].set_ylabel("Spikes/s")
-                bins=np.arange(-shoulder,(shoulder+meandurall)+binwidth, step=binwidth)
+                bins=np.arange(0,(shoulder+meandurall)+binwidth, step=binwidth)
                 ax[0].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
                 ax[0].tick_params(
                         axis="x",          # changes apply to the x-axis
@@ -494,30 +493,38 @@ def psth(spikefile, motifile, fs, basebeg, basend):
                         bottom=False,      # ticks along the bottom edge are off
                         top=False,         # ticks along the top edge are off
                         labelbottom=False)
-            spikes=np.sort(np.concatenate(spikes3))
+                basecuts=np.random.choice(np.arange(basebeg,basend))
+                test2=spused[np.where(np.logical_and(spused >= basecuts, spused <= basecuts+meandurall) == True)]-basecuts
+                basespk+=[test2]
+            # Computation of baseline
+            b=np.sort(np.concatenate(basespk))
+            u,_= py.histogram(b, bins=np.arange(0,meandurall,binwidth)+binwidth, weights=np.ones(len(b))/normfactor)
+            basemean=np.mean(u)
+            stdbase=np.std(u)
+            axis=np.arange(meandurall/3,meandurall*2/3,binwidth)+adjust
+            ax[0].plot(axis,np.ones((len(axis),))*basemean, color = "g")
+            ax[0].plot(axis,np.ones((len(axis),))*(basemean+stdbase), color = "black")
+            ax[0].plot(axis,np.ones((len(axis),))*(basemean-stdbase), color = "black", ls="dashed")
+            # Computation of spikes
+            spikes=np.sort(np.concatenate(spikes2))
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
-            #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left")
-            x2+=[x1[correct:]]
-            y=np.append(y1,0)
-            y2+=[y[correct:]]
-            correct=2 #This is necessary for the proper execution of the interpolation
-    x2=np.concatenate(x2)
-    x2=np.sort(x2)
-    y2=np.concatenate(y2)
-    basecuts=np.linspace(basebeg,basend,10)
-    for l in range(1,len(basecuts)):
-        test2=spused[np.where(np.logical_and(spused >= basecuts[l-1], spused <= basecuts[l]) == True)]
-        basespk+=[len(test2)/(basecuts[i]-basecuts[i-1])]
-    basemean=np.mean(basespk)
-    basestd=np.std(basespk)    
-    f = scipy.interpolate.interp1d(x2, y2, kind="cubic")
-    xnew=np.linspace(min(x2),max(x2), num=1000)
+            ax[0].axvline(x=(shoulder+meandurall)+adjust, color="grey", linestyle="--")
+            #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
+            x2+=[x1[correct:-1]+adj2]
+            y2+=[y1[correct:]]
+            adj2=binwidth/4
+            adjust=meandurall+shoulder+adjust+adj2
+    x4=np.sort(np.concatenate(x2))
+    y4=np.concatenate(y2)        
+    f = scipy.interpolate.interp1d(x4, y4, kind="quadratic")
+    xnew=np.linspace(min(x4),max(x4), num=1000)
     ax[0].plot(xnew,f(xnew), color="r")
-    ax[0].plot(x2,np.ones((len(x2),))*basemean, color = "g", label = "Mean")
-    ax[0].plot(x2,np.ones((len(x2),))*(basemean+basestd), color = "black", label = "+STD")
-    ax[0].plot(x2,np.ones((len(x2),))*(basemean-basestd), color = "black", ls="dashed", label="-STD")
-    ax[0].legend(loc="upper right")
     py.fig.subplots_adjust(hspace=0)
+    black_line = mlines.Line2D([], [], color='black', label='+STD')
+    black_dashed  = mlines.Line2D([], [], color='black', label='+STD', linestyle="--")
+    green_line  = mlines.Line2D([], [], color='green', label='Mean')
+    ax[0].legend(handles=[black_line,black_dashed,green_line], loc="upper left")
+    
 
     
 ## 
