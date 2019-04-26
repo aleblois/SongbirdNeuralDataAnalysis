@@ -446,7 +446,6 @@ def psth(spikefile, motifile, fs, basebeg, basend):
     spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
     binwidth=0.02
-    correct=0
     adjust=0
     adj2=0
     meandurall=0
@@ -510,8 +509,8 @@ def psth(spikefile, motifile, fs, basebeg, basend):
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
             ax[0].axvline(x=(shoulder+meandurall)+adjust, color="grey", linestyle="--")
             ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
-            x2+=[x1[correct:-1]+adj2]
-            y2+=[y1[correct:]]
+            x2+=[x1[:-1]+adj2]
+            y2+=[y1[:]]
             adj2=binwidth/4
             adjust=meandurall+shoulder+adjust+adj2
     x4=np.sort(np.concatenate(x2))
