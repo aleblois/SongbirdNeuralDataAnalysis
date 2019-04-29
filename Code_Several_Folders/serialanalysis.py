@@ -38,7 +38,7 @@ for item in range(len(listsubdirs)):
     rawfiltered=infosr[2]
     basebeg=int(infosr[3])
     basend=int(infosr[4])
-    motifile=current_dir+ "\\" + listsubdirs[item]+"\\labels.txt"
+    motifile="..\\labels.txt"
     
     #### Analysis
     with open("..\\unitswindow.txt", "r") as datafile:
@@ -50,7 +50,7 @@ for item in range(len(listsubdirs)):
         if input("PTSH?").lower() == "y" or "":
             functionspop.psth(spikefile+".txt", motifile, fs, basebeg, basend )
             os.chdir("Unit_"+spikefile)
-            py.savefig("PSTH.jpg")
+            py.savefig("PSTH.tif")
             py.close()
             os.chdir("..")
         else:
@@ -59,7 +59,7 @@ for item in range(len(listsubdirs)):
         #Correlation Duration
         if input("Correlation Duration?").lower() == "y" or "":
             os.chdir("Unit_"+spikefile)
-            functionspop.corrduration("..\\"+spikefile+".txt", motifile, n_iterations, fs, alpha)
+            functionspop.corrduration("..\\"+spikefile+".txt", "..\\"+motifile, n_iterations, fs, alpha)
             os.chdir("..")
         else:
             pass
@@ -68,7 +68,7 @@ for item in range(len(listsubdirs)):
         #Correlation Spectral Entropy
         if input("Correlation Spectral Entropy?").lower() == "y" or "":
             os.chdir("Unit_"+spikefile)
-            functionspop.corrspectral("..\\"+ songfile, motifile, fs, "..\\"+spikefile+".txt", window_size, n_iterations, alpha, premot)
+            functionspop.corrspectral("..\\"+ songfile, "..\\"+motifile, fs, "..\\"+spikefile+".txt", window_size, n_iterations, alpha, premot)
             os.chdir("..")
         else:
             pass
@@ -76,7 +76,7 @@ for item in range(len(listsubdirs)):
         #Correlation Pitch
         if input("Correlation Pitch?").lower() == "y" or "":
             os.chdir("Unit_"+spikefile)
-            functionspop.corrpitch("..\\"+ songfile, motifile, lags, window_size, fs, "..\\"+spikefile+".txt", n_iterations, alpha, premot)
+            functionspop.corrpitch("..\\"+ songfile, "..\\"+motifile, lags, window_size, fs, "..\\"+spikefile+".txt", n_iterations, alpha, premot)
             os.chdir("..")
         else:
             pass
@@ -84,7 +84,7 @@ for item in range(len(listsubdirs)):
         #Correlation Amplitude
         if input("Correlation Amplitude?").lower() == "y" or "":
             os.chdir("Unit_"+spikefile)
-            functionspop.corramplitude("..\\" + songfile, motifile, fs, "..\\"+spikefile+".txt", window_size, n_iterations, alpha, premot)
+            functionspop.corramplitude("..\\" + songfile, "..\\"+motifile, fs, "..\\"+spikefile+".txt", window_size, n_iterations, alpha, premot)
             os.chdir("..")
         else:
             pass
