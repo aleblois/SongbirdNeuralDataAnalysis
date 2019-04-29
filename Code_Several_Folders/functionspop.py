@@ -449,7 +449,7 @@ def psth(spikefile, motifile, fs, basebeg, basend):
     adjust=0
     adj2=0
     meandurall=0
-    py.fig, ax = py.subplots(2,1)
+    py.fig, ax = py.subplots(2,1, figsize=(18,15))
     k=[arra,arrb,arrc,arrd] #considering only up to Syb D
     x2=[]
     y2=[]
@@ -704,7 +704,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, n_iterations, 
     
     for obj in range(len(arrs)):
         used=arrs[obj]
-        means = np.loadtxt("..\\"+y[obj]).astype(int)
+        means = np.loadtxt("..\\..\\"+y[obj]).astype(int)
         syb=song[int(used[0][0]):int(used[0][1])]
     
         # Autocorrelation and Distribution 
@@ -912,7 +912,7 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
     
     for g in range(len(x)):
         used=x[g]
-        means = np.loadtxt("..\\"+y[g]).astype(int)
+        means = np.loadtxt("..\\..\\"+y[g]).astype(int)
         syb=song[int(used[0][0]):int(used[0][1])]
         
         # Autocorrelation and Distribution 
@@ -1123,7 +1123,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
     Syls=["A","B","C","D"]
     for g in range(len(y)):
         used=x[g]
-        means = np.loadtxt("..\\"+y[g]).astype(int)
+        means = np.loadtxt("..\\..\\"+y[g]).astype(int)
         syb=song[int(used[0][0]):int(used[0][1])]
         # Autocorrelation and Distribution 
         for m in range(1,len(means)):
