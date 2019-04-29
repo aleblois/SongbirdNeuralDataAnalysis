@@ -5,7 +5,7 @@ Created on Thu Apr 25 20:58:16 2019
 @author: eduar
 """
 
-import functionspop
+#import functionspop
 import glob
 import os
 import pylab as py
@@ -22,12 +22,13 @@ for item in os.listdir(current_dir):
     if os.path.isdir(os.path.join(current_dir, item)):
         if item == "__pycache__":
             continue
-    else:
-        listsubdirs+=[item]
+        else:
+            listsubdirs+=[item]
     
 for item in range(len(listsubdirs)):
     print("Working on folder:" + listsubdirs[item])
     os.chdir(listsubdirs[item])
+    l=os.getcwd()
     if glob.glob('*.smr') != []:
         file = glob.glob('*.smr')[0]
     else:
@@ -76,7 +77,7 @@ for item in range(len(listsubdirs)):
     
     #Gives you the option to plot the analogs/spiketrains
     if input("Want to run plotplots?").lower() == "y":
-        smr=listsubdirs[item][0]+ "\\" + file
+        smr= l + "\\" + file
         functionspop.plotplots(smr)
         py.waitforbuttonpress(60)
     else:
@@ -90,8 +91,8 @@ for item in range(len(listsubdirs)):
     rawfiltered=infosr[2]
     basebeg=int(infosr[3])
     basend=int(infosr[4])
-    motifile=listsubdirs[item][0]+ "\\" +"labels.txt"
-    smr=listsubdirs[item][0]+ "\\" + file
+    motifile="..\\" +"labels.txt"
+    smr="..\\" + file
     
     ### Get LFP downsampled
     print("Obtaining the Downsampled LFP..")
@@ -102,7 +103,8 @@ for item in range(len(listsubdirs)):
     functionspop.spikeshapes(smr, raw, rawfiltered)
     
     ### Get the tones/sybcuts for further analysis
-    functionspop.gettones(songfile,motifile,fs, window_size)
+    if not os.path.isfile("..\\MeanA.txt"):
+        functionspop.gettones(songfile,motifile,fs, window_size)
         
     os.chdir(current_dir)
     
