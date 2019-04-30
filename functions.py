@@ -266,6 +266,8 @@ def createsave(file):
                 where=d.index(Chprov)
                 windowbeg=int(x[where][1])
                 windowend=int(x[where][2])
+		if windowend==-1:
+			windowend=arr[-1]
                 tosave= arr[np.where(np.logical_and(arr >= windowbeg , arr <= windowend) == True)]
                 np.savetxt(Chprov+".txt", tosave) #Creates files with the Spiketimes.
             else:
