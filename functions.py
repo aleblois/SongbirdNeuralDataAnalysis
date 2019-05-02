@@ -266,8 +266,8 @@ def createsave(file):
                 where=d.index(Chprov)
                 windowbeg=int(x[where][1])
                 windowend=int(x[where][2])
-		if windowend==-1:
-			windowend=arr[-1]
+                if windowend==-1:			
+                    windowend=arr[-1]
                 tosave= arr[np.where(np.logical_and(arr >= windowbeg , arr <= windowend) == True)]
                 np.savetxt(Chprov+".txt", tosave) #Creates files with the Spiketimes.
             else:
@@ -410,18 +410,15 @@ def spectrogram(songfile, beg, end, fs):
     analog= np.load(songfile)
     rawsong1=analog[beg:end].reshape(1,-1)
     rawsong=rawsong1[0]
-    window =("hamming")
-    overlap = 64
-    nperseg = 1024
-    noverlap = nperseg-overlap
     #Compute and plot spectrogram
-    (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode="complex")
-    py.figure()
-    py.subplot(2,1,1)
-    py.plot(rawsong)
-    py.subplot(2,1,2)
-    py.imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
-    py.colorbar()
+    #(f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, scaling="density", mode="complex")
+    py.fig, ax = py.subplots(2,1)
+    ax[0].plot(rawsong)
+    _,_,_,im = ax[1].specgram(rawsong,Fs=32000, NFFT=980, noverlap=930, scale_by_freq=False, mode="default", pad_to=915, cmap="inferno")
+    #py.imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
+    cbar=py.colorbar(im, ax=ax[1])
+    #cbar.ax.invert_yaxis()
+    
     py.tight_layout() 
 
 
@@ -672,7 +669,7 @@ def powerspectrum(songfile, beg, end, fs):
     py.subplot(313)
     py.plot(freqs_side, abs(FFT_side), "b") # plotting the positive fft spectrum
     py.xlabel("Frequency (Hz)")
-    py.ylabel("Count single-sided")
+    py.ylabel("Count single-sided (Power)")
     py.show()
 
 ## 
