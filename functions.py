@@ -416,9 +416,16 @@ def spectrogram(songfile, beg, end, fs):
     ax[0].plot(rawsong)
     _,_,_,im = ax[1].specgram(rawsong,Fs=32000, NFFT=980, noverlap=930, scale_by_freq=False, mode="default", pad_to=915, cmap="inferno")
     #py.imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
+    ax[1].tick_params(
+                        axis="x",          # changes apply to the x-axis
+                        which="both",      # both major and minor ticks are affected
+                        bottom=False,      # ticks along the bottom edge are off
+                        top=False,         # ticks along the top edge are off
+                        labelbottom=False)
     cbar=py.colorbar(im, ax=ax[1])
-    #cbar.ax.invert_yaxis()
-    
+    cbar.ax.invert_yaxis()
+    cbar.set_ticks(np.linspace(cbar.vmin, cbar.vmax, 5, dtype=float))
+    cbar.ax.set_yticklabels(np.floor(np.linspace(np.floor(cbar.vmin), cbar.vmax, 5)).astype(int))
     py.tight_layout() 
 
 
