@@ -86,7 +86,7 @@ def smoothed(inputSignal,fs, smooth_win=10):
     
     
 #Fast loop to check visually if the syllables are ok. I've been finding problems in A syllables, so I recommend checking always before analysis.
-def checksyls(songfile,motifile, ):
+def checksyls(songfile,motifile, beg, end ):
     arra, arrb, arrc, arrd, arre= sortsyls(motifile)
     song=np.load(songfile)
     #Will filter which arra will be used
@@ -99,10 +99,12 @@ def checksyls(songfile,motifile, ):
         used=arrc    
     elif answer.lower() == "d":
         used=arrd
-        
-    for i in used:
+    
+    print("This syb has "+ str(len(used)) + " renditions.")
+    
+    for i in range(beg,end):
         py.figure()
-        py.plot(song[int(i[0]):int(i[1])])
+        py.plot(song[int(used[i][0]):int(used[i][1])])
 
 """ The two following functions were obtained from 
 http://ceciliajarne.web.unq.edu.ar/investigacion/envelope_code/ """
@@ -507,6 +509,7 @@ def psth(spikefile, motifile, fs, basebeg, basend):
             # Computation of spikes
             spikes=np.sort(np.concatenate(spikes2))
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
+            print(y1)
             ax[0].axvline(x=(shoulder+meandurall)+adjust, color="grey", linestyle="--")
             #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
             x2+=[x1[:-1]+adj2]
@@ -514,10 +517,11 @@ def psth(spikefile, motifile, fs, basebeg, basend):
             adj2=binwidth/4
             adjust=meandurall+shoulder+adjust+adj2
     x4=np.sort(np.concatenate(x2))
-    y4=np.concatenate(y2)        
-    f = scipy.interpolate.interp1d(x4, y4, kind="quadratic")
-    xnew=np.linspace(min(x4),max(x4), num=1000)
-    ax[0].plot(xnew,f(xnew), color="r")
+    y4=np.concatenate(y2)
+    ax[0].plot(x4,y4, color="red")        
+    #f = scipy.interpolate.interp1d(x4, y4, kind="linear")
+    #xnew=np.linspace(min(x4),max(x4), num=100)
+    #ax[0].plot(xnew,f(xnew), color="r")
     py.fig.subplots_adjust(hspace=0)
     black_line = mlines.Line2D([], [], color='black', label='+STD')
     black_dashed  = mlines.Line2D([], [], color='black', label='+STD', linestyle="--")
