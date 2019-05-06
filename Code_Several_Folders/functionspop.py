@@ -1297,10 +1297,10 @@ def gettones(songfile,motifile,fs, window_size):
         means=[]
         for k in range(len(coords2)):
             means+=[int(np.mean(coords2[k]))]
-        np.savetxt("Mean"+Syls[x]+".txt", means) 
+        np.savetxt("../Mean"+Syls[x]+".txt", means) 
         # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
         py.figure()
         py.plot(syb)
         for l in range(1,len(means)):
             py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])
-        py.savefig("Cut"+ Syls[x]+".jpg")
+        py.savefig("../Cut"+ Syls[x]+".jpg")
