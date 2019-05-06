@@ -5,7 +5,7 @@ Created on Thu Apr 25 20:58:16 2019
 @author: eduar
 """
 
-#import functionspop
+import functionspop
 import glob
 import os
 import pylab as py
