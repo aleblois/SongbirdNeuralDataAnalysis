@@ -88,7 +88,7 @@ def smoothed(inputSignal,fs, smooth_win=10):
     
     
 #Fast loop to check visually if the syllables are ok. I've been finding problems in A syllables, so I recommend checking always before analysis.
-def checksyls(songfile,motifile, ):
+def checksyls(songfile,motifile, beg, end ):
     arra, arrb, arrc, arrd, arre= sortsyls(motifile)
     song=np.load(songfile)
     #Will filter which arra will be used
@@ -101,10 +101,12 @@ def checksyls(songfile,motifile, ):
         used=arrc    
     elif answer.lower() == "d":
         used=arrd
-        
-    for i in used:
+    
+    print("This syb has "+ str(len(used)) + " renditions.")
+    
+    for i in range(beg,end):
         py.figure()
-        py.plot(song[int(i[0]):int(i[1])])
+        py.plot(song[int(used[i][0]):int(used[i][1])])
 
 """ The two following functions were obtained from 
 http://ceciliajarne.web.unq.edu.ar/investigacion/envelope_code/ """
@@ -266,8 +268,8 @@ def createsave(file):
                 where=d.index(Chprov)
                 windowbeg=int(x[where][1])
                 windowend=int(x[where][2])
-		if windowend==-1:
-			windowend=arr[-1]
+                if windowend==-1:			
+                    windowend=arr[-1]
                 tosave= arr[np.where(np.logical_and(arr >= windowbeg , arr <= windowend) == True)]
                 np.savetxt(Chprov+".txt", tosave) #Creates files with the Spiketimes.
             else:
@@ -410,18 +412,22 @@ def spectrogram(songfile, beg, end, fs):
     analog= np.load(songfile)
     rawsong1=analog[beg:end].reshape(1,-1)
     rawsong=rawsong1[0]
-    window =("hamming")
-    overlap = 64
-    nperseg = 1024
-    noverlap = nperseg-overlap
     #Compute and plot spectrogram
-    (f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, mode="complex")
-    py.figure()
-    py.subplot(2,1,1)
-    py.plot(rawsong)
-    py.subplot(2,1,2)
-    py.imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
-    py.colorbar()
+    #(f,t,sp)=scipy.signal.spectrogram(rawsong, fs, window, nperseg, noverlap, scaling="density", mode="complex")
+    py.fig, ax = py.subplots(2,1)
+    ax[0].plot(rawsong)
+    _,_,_,im = ax[1].specgram(rawsong,Fs=32000, NFFT=980, noverlap=930, scale_by_freq=False, mode="default", pad_to=915, cmap="inferno")
+    #py.imshow(10*np.log10(np.square(abs(sp))), origin="lower", aspect="auto", interpolation="none", cmap="inferno")
+    ax[1].tick_params(
+                        axis="x",          # changes apply to the x-axis
+                        which="both",      # both major and minor ticks are affected
+                        bottom=False,      # ticks along the bottom edge are off
+                        top=False,         # ticks along the top edge are off
+                        labelbottom=False)
+    cbar=py.colorbar(im, ax=ax[1])
+    cbar.ax.invert_yaxis()
+    cbar.set_ticks(np.linspace(cbar.vmin, cbar.vmax, 5, dtype=float))
+    cbar.ax.set_yticklabels(np.floor(np.linspace(np.floor(cbar.vmin), cbar.vmax, 5)).astype(int))
     py.tight_layout() 
 
 
@@ -451,7 +457,7 @@ def psth(spikefile, motifile, fs, basebeg, basend):
     adjust=0
     adj2=0
     meandurall=0
-    py.fig, ax = py.subplots(2,1)
+    py.fig, ax = py.subplots(2,1, figsize=(18,15))
     k=[arra,arrb,arrc,arrd] #considering only up to Syb D
     x2=[]
     y2=[]
@@ -502,25 +508,26 @@ def psth(spikefile, motifile, fs, basebeg, basend):
             u,_= py.histogram(b, bins=np.arange(0,meandurall,binwidth)+binwidth, weights=np.ones(len(b))/normfactor)
             basemean=np.mean(u)
             stdbase=np.std(u)
-            axis=np.arange(meandurall/3,meandurall,binwidth)+adjust
+            axis=np.arange(meandurall/3,meandurall*2/3,binwidth)+adjust
             ax[0].plot(axis,np.ones((len(axis),))*basemean, color = "g")
             ax[0].plot(axis,np.ones((len(axis),))*(basemean+stdbase), color = "black")
             ax[0].plot(axis,np.ones((len(axis),))*(basemean-stdbase), color = "black", ls="dashed")
             # Computation of spikes
             spikes=np.sort(np.concatenate(spikes2))
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
+            print(y1)
             ax[0].axvline(x=(shoulder+meandurall)+adjust, color="grey", linestyle="--")
-            ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
+            #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
             x2+=[x1[:-1]+adj2]
             y2+=[y1[:]]
             adj2=binwidth/4
             adjust=meandurall+shoulder+adjust+adj2
     x4=np.sort(np.concatenate(x2))
-    y4=np.concatenate(y2)        
-    f = scipy.interpolate.interp1d(x4, y4, kind="quadratic")
-    xnew=np.linspace(min(x4),max(x4), num=1000)
-    ax[0].plot(xnew,f(xnew), color="r")
-    #ax[0].legend(loc="upper right")
+    y4=np.concatenate(y2)
+    ax[0].plot(x4,y4, color="red")        
+    #f = scipy.interpolate.interp1d(x4, y4, kind="linear")
+    #xnew=np.linspace(min(x4),max(x4), num=100)
+    #ax[0].plot(xnew,f(xnew), color="r")
     py.fig.subplots_adjust(hspace=0)
     black_line = mlines.Line2D([], [], color='black', label='+STD')
     black_dashed  = mlines.Line2D([], [], color='black', label='+STD', linestyle="--")
@@ -672,7 +679,7 @@ def powerspectrum(songfile, beg, end, fs):
     py.subplot(313)
     py.plot(freqs_side, abs(FFT_side), "b") # plotting the positive fft spectrum
     py.xlabel("Frequency (Hz)")
-    py.ylabel("Count single-sided")
+    py.ylabel("Count single-sided (Power)")
     py.show()
 
 ## 
@@ -1165,7 +1172,7 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, means=None):
 #    ----------
 #    spectral_entropy : float
 #        The spectral entropy as float value.
-def complexity_entropy_spectral(signal, sampling_rate, bands=None):
+def complexity_entropy_spectral(signal, fs, bands=None):
     """
     Based on the `pyrem <https://github.com/gilestrolab/pyrem>`_ repo by Quentin Geissmann.
     
@@ -1202,7 +1209,7 @@ def complexity_entropy_spectral(signal, sampling_rate, bands=None):
     if bands is None:
         power_per_band= psd[psd>0]
     else:
-        freqs = np.fft.rfftfreq(signal.size, 1/float(sampling_rate))
+        freqs = np.fft.rfftfreq(signal.size, 1/float(fs))
         bands = np.asarray(bands)
 
         freq_limits_low = np.concatenate([[0.0],bands])
