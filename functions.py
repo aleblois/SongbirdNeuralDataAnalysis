@@ -1172,7 +1172,7 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, means=None):
 #    ----------
 #    spectral_entropy : float
 #        The spectral entropy as float value.
-def complexity_entropy_spectral(signal, sampling_rate, bands=None):
+def complexity_entropy_spectral(signal, fs, bands=None):
     """
     Based on the `pyrem <https://github.com/gilestrolab/pyrem>`_ repo by Quentin Geissmann.
     
@@ -1209,7 +1209,7 @@ def complexity_entropy_spectral(signal, sampling_rate, bands=None):
     if bands is None:
         power_per_band= psd[psd>0]
     else:
-        freqs = np.fft.rfftfreq(signal.size, 1/float(sampling_rate))
+        freqs = np.fft.rfftfreq(signal.size, 1/float(fs))
         bands = np.asarray(bands)
 
         freq_limits_low = np.concatenate([[0.0],bands])
