@@ -99,7 +99,7 @@ This page will provide you a little tutorial of how to use our code . For this t
 	To generate the image below we will get from 862331 up to 889794.
 	<p><img src="./images/spectrogram.png" alt="" />
 	<br> </br>
-	<p> <h3> <b> Example 4 - Using psth(songfile, motifile,spikefile, lags, window_size,fs, means=None): </b> </h3>
+	<p> <h3> <b> Example 4 - Using psth(spikefile, motifile, basebeg, basend,binwidth, fs): </b> </h3>
 	<p> With this function you can obtain a Peri-Stimulus Time Histogram (PSTH) that works with a time warping method to align all the motifs/renditions to the same mean.
 	The mean and standard deviation of the baseline will also be computed for each syllable, allowing further statistical comparison.
 	<p><i> * The spikefile is the .txt file that contains the spike times of a channel, it is created by the function createsave(file). 
@@ -116,15 +116,15 @@ This page will provide you a little tutorial of how to use our code . For this t
 	To generate the image below we will get from 862331 up to 869890, which corresponds to a syllable A.	
 	<p><img src="./images/powerspectrum.png" alt="" />
 	<br> </br>
-	<p> <h3> <b> Example 6 - Using corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None): </b> </h3>
+	<p> <h3> <b> Example 6 - Using corrpitch(songfile, motifile,spikefile, lags, window_size,fs, means=None): </b> </h3>
 	<p> With this function you can obtain the pitch of each note inside a syllable and then perform a correlation between the pitch of the tone and the spiking activity inside a premotor window (default: 50ms), and inside the duration of the tone. To use this function %matplolib must be not inline. *** The same logic is used for corramplitude() and corrspectral().
 	<p><i>* The spikefile is the .txt file that contains the spike times of a channel, it is created by the function createsave(file). 
 	Please check the documentation of createsave(file) to know how to obtain the file.</i>
 	<p>In this function, one will need to define the number of lags for the autocorrelation, a window_size for obtaining the convolved version of the amplitude signal, fs is the sampling frequency, and means is a .txt file that contains the cutting points for the separating the chunks (tones).
 	To have an idea of how a file with the labels (motifile) can look like in our data, please click <a href="https://i.imgur.com/iYlfiMc.png"> here</a>.
 	<p>This function needs to be explained step by step, so, let's go:
-		<ul> Step 1: type corrpitch(songfile, motifile, lags, window_size,fs,spikefile, means=None), with the arguments suitable for your data, in the console.
-					<ul><p>In our case it could be  <i> corrpitch("CSC10.npy", "labels.txt", 100, 100,32000,"ch15#1.txt", means=None)</i></p></ul>
+		<ul> Step 1: type corrpitch(songfile, motifile,spikefile, lags, window_size,fs, means=None), with the arguments suitable for your data, in the console.
+					<ul><p>In our case it could be  <i> corrpitch("CSC10.npy", "labels.txt", "ch15#1.txt", 100, 100,32000, means=None)</i></p></ul>
 			 <p>Step 2: A "Which Syllable?" will be shown in the console, asking for which syllable will be used for the analysis. <i>*Default syllables : A,B,C,D </i></p>
 			 <p>Step 3: A graph showing an example of the syllable will appear, just to give the user an idea how many tones/chunks should be cut. Thus, after that the user should answer in the console "Number of chunks?"
 			 For the syllable used in this example (syb A), we decided to cut it in 4 chunks.
