@@ -69,6 +69,16 @@ This page will provide you a little tutorial of how to use our code . For this t
    <ul>1 - First, you have to open your QtConsole and define the directory to the one where the code can be found in:
      <p><img src="./images/prompt1.png" width="500" height="250"alt="" />
 	<br> </br>
+	
+	<p>In the beginning of the code there are some key parameters that can be changed according to one's need.
+	<ul><p>## Some key parameters:</p>
+		<p>fs=32000 #Sampling Frequency (Hz)</p>
+		<p>n_iterations=1000 #For bootstrapping</p>
+		<p>window_size=100 #For envelope</p>
+		<p>lags=100 #For Autocorrelation</p>
+		<p>alpha=0.05 #For P value</p>
+		<p>premot=0.05 # Premotor window</p>
+		<p>binwidth=0.02 # Bin PSTH</p></ul>
 	<p>2 - Now, you can run the script with the magic command %run. By doing that, you will be able to use all the functions in the code. 
 	<i>* Remember that the files that will be used in the functions have to be either in the same directory of functions.py, or you should change the directory again by using the cd command.</i>
 	<p> Now, let's see some examples:
@@ -89,7 +99,7 @@ This page will provide you a little tutorial of how to use our code . For this t
 	To generate the image below we will get from 862331 up to 889794.
 	<p><img src="./images/spectrogram.png" alt="" />
 	<br> </br>
-	<p> <h3> <b> Example 4 - Using psth(spikefile, motifile, fs, basebeg, basend): </b> </h3>
+	<p> <h3> <b> Example 4 - Using psth(songfile, motifile,spikefile, lags, window_size,fs, means=None): </b> </h3>
 	<p> With this function you can obtain a Peri-Stimulus Time Histogram (PSTH) that works with a time warping method to align all the motifs/renditions to the same mean.
 	The mean and standard deviation of the baseline will also be computed for each syllable, allowing further statistical comparison.
 	<p><i> * The spikefile is the .txt file that contains the spike times of a channel, it is created by the function createsave(file). 
@@ -128,10 +138,10 @@ This page will provide you a little tutorial of how to use our code . For this t
 			 <p>Step 7: Then, if the user chooses to keep a tone, it will have to click on the graph to stablish the peak in which the pitch can be found.</p>
 			 <p><img src="./images/selectpeaks.png" width="450" height="200" alt="Pick Selection" />
 			 <p>Step 8: After selecting the peak, the user will be asked if correlations should be performed [Y/n]. If Y, a number of iterations for bootstrapping will be asked, and the correlation analysis will be performed.</p>
-			 <p>The code checks for the normality and homocedasticity of the data before performing the correlation test (Pearson or Spearman). Other than that, there is also a check point for the amount of samples (minimum is 3), and also to see if the number of spikes in the correlation columns are not all 0 (this would cause an error for the analysis).
+			 <p>The code checks for the normality and homoscedasticity of the data before performing the correlation test (Pearson or Spearman). Other than that, there is also a check point for the amount of samples (minimum is 3), and also to see if the number of spikes in the correlation columns are not all 0 (this would cause an error for the analysis).
 			 <p> All correlation data will be saved in .txt files (Raw data and bootstrapped)
 			 <br> </br>
-			 <p>Step 9: Finally, the user will be asked if he/she wants to idenfity an possible point of the peak to have an estimation of the pitch. If yes, the final figure will contain an annotation on the clicked coordinate.
+			 <p>Step 9: Finally, the user will be asked if he/she wants to identify a possible point of the peak to have an estimation of the pitch. If yes, the final figure will contain an annotation on the clicked coordinate.
 			 <p> The final figure will have on the upper left corner a plot of the interpolated version of the peak (to increase precision in the pitch detection). A plot with the distribution of the pitchs (upper left), and the autocorrelation plot (bottom).
 			 <p><a href="https://i.imgur.com/iB3Pghg.png"><img src="./images/Figure_2.jpg" width="700" height="400" alt="Final Image"/></a>
 </div><!-- contents -->
