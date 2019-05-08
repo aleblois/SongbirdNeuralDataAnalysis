@@ -87,13 +87,13 @@ Functions</h2></td></tr>
 <tr class="memitem:a4c0bee47897f0d45ece46ab11772fffd"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a4c0bee47897f0d45ece46ab11772fffd">spikeshapes</a> (file, raw, rawfiltered)</td></tr>
 <tr class="memdesc:a4c0bee47897f0d45ece46ab11772fffd"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function will get and save the spikeshapes (.txt) from the Raw unfiltered neuronal signal.  <a href="#a4c0bee47897f0d45ece46ab11772fffd">More...</a><br /></td></tr>
 <tr class="separator:a4c0bee47897f0d45ece46ab11772fffd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a05894682d9e461c24a70931abdf5be0c"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a05894682d9e461c24a70931abdf5be0c">lfpdown</a> (LFPfile)</td></tr>
+<tr class="memitem:a05894682d9e461c24a70931abdf5be0c"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a05894682d9e461c24a70931abdf5be0c">lfpdown</a> (LFPfile, fs)</td></tr>
 <tr class="memdesc:a05894682d9e461c24a70931abdf5be0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function will downsample your LFP signal to 1000Hz and save it as .npy file.  <a href="#a05894682d9e461c24a70931abdf5be0c">More...</a><br /></td></tr>
 <tr class="separator:a05894682d9e461c24a70931abdf5be0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a22162733069818752c0222ceffa4d504"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a22162733069818752c0222ceffa4d504">spectrogram</a> (songfile, beg, end, fs)</td></tr>
 <tr class="memdesc:a22162733069818752c0222ceffa4d504"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function generates spectrogram of the motifs in the song raw signal.  <a href="#a22162733069818752c0222ceffa4d504">More...</a><br /></td></tr>
 <tr class="separator:a22162733069818752c0222ceffa4d504"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5964a4029dcd9c6874152755da2bd26d"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a5964a4029dcd9c6874152755da2bd26d">psth</a> (spikefile, motifile, fs, basebeg, basend)</td></tr>
+<tr class="memitem:a5964a4029dcd9c6874152755da2bd26d"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a5964a4029dcd9c6874152755da2bd26d">psth</a> (spikefile, motifile, basebeg, basend, binwidth, fs)</td></tr>
 <tr class="memdesc:a5964a4029dcd9c6874152755da2bd26d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function generates a PSTH for motifs.  <a href="#a5964a4029dcd9c6874152755da2bd26d">More...</a><br /></td></tr>
 <tr class="separator:a5964a4029dcd9c6874152755da2bd26d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae60d5c4809eed2526a9805b6712c3539"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#ae60d5c4809eed2526a9805b6712c3539">corrduration</a> (spikefile, motifile, n_iterations, fs)</td></tr>
@@ -105,16 +105,16 @@ Functions</h2></td></tr>
 <tr class="memitem:ad96ed6350d2d190f85cd5cd77beed945"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#ad96ed6350d2d190f85cd5cd77beed945">powerspectrum</a> (songfile, beg, end, fs)</td></tr>
 <tr class="memdesc:ad96ed6350d2d190f85cd5cd77beed945"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function will perform the Fast Fourier Transform to obtain the power spectrum of the syllables.  <a href="#ad96ed6350d2d190f85cd5cd77beed945">More...</a><br /></td></tr>
 <tr class="separator:ad96ed6350d2d190f85cd5cd77beed945"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a33dbe7f5c2d1558356c28c5a0d7b1515"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a33dbe7f5c2d1558356c28c5a0d7b1515">corrpitch</a> (songfile, motifile, lags, window_size, fs, spikefile, means=None)</td></tr>
+<tr class="memitem:a33dbe7f5c2d1558356c28c5a0d7b1515"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a33dbe7f5c2d1558356c28c5a0d7b1515">corrpitch</a> (songfile, motifile,spikefile, lags, window_size, fs, means=None)</td></tr>
 <tr class="memdesc:a33dbe7f5c2d1558356c28c5a0d7b1515"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function can be used to obtain the pitch of specific tones inside a syllable.  <a href="#a33dbe7f5c2d1558356c28c5a0d7b1515">More...</a><br /></td></tr>
 <tr class="separator:a33dbe7f5c2d1558356c28c5a0d7b1515"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac893b06a9ea57235e0d5626430d4146f"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#ac893b06a9ea57235e0d5626430d4146f">corramplitude</a> (songfile, motifile, fs, spikefile, means=None)</td></tr>
+<tr class="memitem:ac893b06a9ea57235e0d5626430d4146f"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#ac893b06a9ea57235e0d5626430d4146f">corramplitude</a> (songfile, motifile, spikefile, fs, window_size, means=None)</td></tr>
 <tr class="memdesc:ac893b06a9ea57235e0d5626430d4146f"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function can be used to obtain the amplitude and its correlations of specific tones inside a syllable.  <a href="#ac893b06a9ea57235e0d5626430d4146f">More...</a><br /></td></tr>
 <tr class="separator:ac893b06a9ea57235e0d5626430d4146f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3539ac99f2240f68fbb10562f5d89433"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a3539ac99f2240f68fbb10562f5d89433">complexity_entropy_spectral</a> (signal, sampling_rate, bands=None)</td></tr>
+<tr class="memitem:a3539ac99f2240f68fbb10562f5d89433"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a3539ac99f2240f68fbb10562f5d89433">complexity_entropy_spectral</a> (signal, fs, bands=None)</td></tr>
 <tr class="memdesc:a3539ac99f2240f68fbb10562f5d89433"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function computes the Spectral Entropy of a signal.  <a href="#a3539ac99f2240f68fbb10562f5d89433">More...</a><br /></td></tr>
 <tr class="separator:a3539ac99f2240f68fbb10562f5d89433"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a571bf37894105970022b53eb4357324c"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a571bf37894105970022b53eb4357324c">corrspectral</a> (songfile, motifile, fs, spikefile, means=None)</td></tr>
+<tr class="memitem:a571bf37894105970022b53eb4357324c"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a571bf37894105970022b53eb4357324c">corrspectral</a> (songfile, motifile, spikefile, fs,  window_size, means=None)</td></tr>
 <tr class="memdesc:a571bf37894105970022b53eb4357324c"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function can be used to obtain the spectral entropy and its correlations of specific tones inside a syllable.  <a href="#a571bf37894105970022b53eb4357324c">More...</a><br /></td></tr>
 <tr class="separator:a571bf37894105970022b53eb4357324c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -135,7 +135,7 @@ Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>sampling_rate</em>, </td>
+          <td class="paramname"><em>fs</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -155,8 +155,8 @@ Functions</h2></td></tr>
 <p>The power spectrum is computed through Fast Fourier Transform. Then, it is normalised and assimilated to a probability density function.</p>
 <h2>Arguments: </h2>
 <p> <i>signal</i> : list or array List or array of values. 
-<p> <i>sampling_rate</i> : int Sampling rate (samples/second). 
-<p> <i> bands </i> : list or array A list of numbers delimiting the bins of the frequency bands. If None the entropy is computed over the whole range of the DFT (from 0 to <code>f_s/2</code>).</p>
+<p> <i>fs</i> : int Sampling rate (Hz). 
+<p> <i>bands </i> : list or array A list of numbers delimiting the bins of the frequency bands. If None the entropy is computed over the whole range of the DFT (from 0 to <code>f_s/2</code>).</p>
 <h2>Returns </h2>
 <p>spectral_entropy : float The spectral entropy as float value. </p><pre class="fragment">Based on the `pyrem &lt;https://github.com/gilestrolab/pyrem&gt;`_ repo by Quentin Geissmann. 
 </div>
@@ -179,17 +179,17 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname"><em>motifile</em>, </td>
         </tr>
-        <tr>
+	<tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>fs</em>, </td>
+          <td class="paramname"><em>spikefile</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>spikefile</em>, </td>
+          <td class="paramname"><em>fs</em>, </td>
         </tr>
 	<tr>
           <td class="paramkey"></td>
@@ -290,6 +290,12 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname"><em>motifile</em>, </td>
         </tr>
+	<tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>spikefile</em>, </td>
+        </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
@@ -307,12 +313,6 @@ Functions</h2></td></tr>
           <td></td>
           <td class="paramtype">&#160;</td>
           <td class="paramname"><em>fs</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>spikefile</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -361,17 +361,17 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname"><em>motifile</em>, </td>
         </tr>
-        <tr>
+	<tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>fs</em>, </td>
+          <td class="paramname"><em>spikefile</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>spikefile</em>, </td>
+          <td class="paramname"><em>fs</em>, </td>
         </tr>
 	<tr>
           <td class="paramkey"></td>
@@ -491,6 +491,12 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname"><em>LFPfile</em></td><td>)</td>
           <td></td>
+        </tr>
+	<tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>fs</em>, </td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -634,13 +640,7 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname"><em>motifile</em>, </td>
         </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>fs</em>&#160;</td>
-        </tr>
-		<tr>
+       	<tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
@@ -651,6 +651,18 @@ Functions</h2></td></tr>
           <td></td>
           <td class="paramtype">&#160;</td>
           <td class="paramname"><em>basend</em>&#160;</td>
+        </tr>
+	 <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>binwidth</em>&#160;</td>
+        </tr>
+	 <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>fs</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -665,9 +677,10 @@ Functions</h2></td></tr>
 <h2>Arguments: </h2>
 <p><i>spikefile</i>: .txt File with the spiketimes.</p>
 <p> <i> motifile </i>: .txt File containing the annotations of the beggining and end of each syllable/motif.</p>
-<p><i>fs</i>: int Sampling rate </p>
+<p><i>fs</i>: int Sampling rate (Hz) </p>
 <p><i>basebeg</i>: float The time to start computing the baseline </p>
 <p><i>basend</i>: float The time to finish computing the baseline </p>
+<p><i>binwidth</i>: float Width of histogram bin. </p>
 
 </div>
 </div>
