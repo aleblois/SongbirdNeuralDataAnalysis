@@ -494,7 +494,7 @@ def psth(spikefile, motifile, fs, basebeg, basend):
                 res=res+1
                 spikes2=spikes1
                 spikes3=np.concatenate(spikes2[n0:n1]) # Gets the step2 and step3 arrays for scatter
-                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|")
+                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color="black")
                 n0+=2
                 n1+=2
                 ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
