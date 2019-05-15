@@ -183,6 +183,15 @@ def getinfo(file):
     return n_analog_signals, n_spike_trains, time, ansampling_rate
 
 
+def getsong(file):
+    data, data_seg = read(file)
+    for i in range(len(data_seg.analogsignals)):
+        if data_seg.analogsignals[i].name == 'Channel bundle (CSC10) ':
+            print(i)
+            song=data_seg.analogsignals[i].as_array()
+        else:
+            continue
+    np.save("Songfile", song)
 ## 
 #
 # This  function will get the analogical signals and the spiketrains from the .smr file and return them in the end as arrays.
@@ -505,7 +514,7 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
                 res=res+1
                 spikes2=spikes1
                 spikes3=np.concatenate(spikes2[n0:n1]) # Gets the step2 and step3 arrays for scatter
-                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|")
+                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color="black")
                 n0+=2
                 n1+=2
                 ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
