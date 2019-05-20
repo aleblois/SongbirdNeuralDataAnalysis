@@ -139,7 +139,11 @@ This page will provide you a little tutorial of how to use our code . For this t
 			 <p><img src="./images/selectpeaks.png" width="450" height="200" alt="Pick Selection" />
 			 <p>Step 8: After selecting the peak, the user will be asked if correlations should be performed [Y/n]. If Y, a number of iterations for bootstrapping will be asked, and the correlation analysis will be performed.</p>
 			 <p>The code checks for the normality and homoscedasticity of the data before performing the correlation test (Pearson or Spearman). Other than that, there is also a check point for the amount of samples (minimum is 3), and also to see if the number of spikes in the correlation columns are not all 0 (this would cause an error for the analysis).
-			 <p> All correlation data will be saved in .txt files (Raw data and bootstrapped)
+			 <p> All correlation data will be saved in .txt files (Raw data and bootstrapped). The raw .txt file will contain either 2 or 3 columns: The first column will always be the result for the acoustic feature (pitch, duration, etc). For pitch,spectral and amplitude correlations, the second column will be the amount of spikes inside the premotor
+				 window, whereas the third column will contain the number of spikes inside the "during" window. Now, for the duration correlations, the data set will only have 2 columns, first being the duration values and the second being the number of spikes respective to the duration. 
+			 <p> For the bootstrapped files, the first value will be the result of the original correlation, and everything below will be the bootstrapped results.
+			 <p><img src="./images/exampleraw.png" width="600" height="300" alt="raw" />
+			 <p><img src="./images/exampleboot.png" width="600" height="300" alt="Keep or not keep" />	
 			 <br> </br>
 			 <p>Step 9: Finally, the user will be asked if he/she wants to identify a possible point of the peak to have an estimation of the pitch. If yes, the final figure will contain an annotation on the clicked coordinate.
 			 <p> The final figure will have on the upper left corner a plot of the interpolated version of the peak (to increase precision in the pitch detection). A plot with the distribution of the pitchs (upper left), and the autocorrelation plot (bottom).
