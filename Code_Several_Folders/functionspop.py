@@ -586,7 +586,7 @@ def corrduration(spikefile, motifile, n_iterations,fs, alpha):
                 array=np.append(array, np.array([[dur[j]],[np.size(step1)/dur[j]]]).reshape(-1,2), axis=0)
             array=array[1:]
             os.chdir("Results")
-            np.savetxt("Data_Raw_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", array)
+            np.savetxt("Data_Raw_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", array, header="First column is the duration value, second is the number of spikes.")
             os.chdir("..")
             threshold = 3 #Standard Deviation threshold for Z score identification of outliers
             z = np.abs(scipy.stats.zscore(array))
@@ -616,7 +616,7 @@ def corrduration(spikefile, motifile, n_iterations,fs, alpha):
                         res=scipy.stats.spearmanr(array[:,1],resample)
                         statistics+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
+                np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics), header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.") #First column is the correlation value, second is the p value.
                 os.chdir("..")
                 print("Syllable " + str(sybs[i]) +": " + str(final))
                 f.writelines("Syllable " + str(sybs[i]) +": " + str(final) + "\n")
@@ -805,7 +805,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, n_iterations, 
             freq2=np.reciprocal(freq2/fs)
             total = np.column_stack((freq2,spikespremot,spikesdur))
             os.chdir("Results")
-            np.savetxt("Data_Raw_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m) + ".txt", total)
+            np.savetxt("Data_Raw_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m) + ".txt", total, header="First column is the pitch value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
             os.chdir("..")
             #Here it will give you the possibility of computing the correlations and Bootstrapping
             threshold = 3 #Standard Deviation threshold for Z score identification of outliers
@@ -843,7 +843,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, n_iterations, 
                         res=scipy.stats.spearmanr(total1[:,1],resample)
                         statistics+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_Premotor.txt", statistics)
+                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 fichier.writelines("Syllable " + Syls[obj] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
                 os.chdir("..")
                 print(final)
@@ -873,7 +873,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, n_iterations, 
                         res=scipy.stats.spearmanr(total2[:,1],resample)
                         statistics2+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_During.txt", statistics2)
+                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 fichier.writelines("Syllable " + Syls[obj] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
                 os.chdir("..")
                 print(final)                  
@@ -978,7 +978,7 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
             amps=np.array(amps)
             total = np.column_stack((amps,spikespremot,spikesdur))
             os.chdir("Results")
-            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m) + "_Mean.txt", total)
+            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m) + "_Mean.txt", total, header="First column is the amplitude value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
             os.chdir("..")
             total1=np.column_stack((amps,spikespremot))
             total2=np.column_stack((amps,spikesdur))
@@ -997,12 +997,12 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
             if len(total1) < 3 or all(a) == True:
                 pass
             else:
-                s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
+                s1=scipy.stats.shapiro(total1[:,0])[1] #Amplitude column
                 s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
                 homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
-                #This will get the data for Pitch vs Premotor
+                #This will get the data for Amplitude vs Premotor
                 if  comb1.all() == True: #test for normality
                     final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
                     statistics+=[[final[0],final[1]]]
@@ -1020,14 +1020,14 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
                         res=scipy.stats.spearmanr(total1[:,1],resample)
                         statistics+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor_Mean.txt", statistics)
+                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor_Mean.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 os.chdir("..")
                 f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
                 print(final)
                 a3.hist(np.array(statistics)[:,0])
                 a3.set_title("Bootstrap Premotor")
                 a3.set_xlabel("Correlation Values")
-            #This will get the data for Pitch vs During     
+            #This will get the data for Amplitude vs During     
             if len(total2) < 3 or all(b) == True:
                 pass
             else:
@@ -1053,7 +1053,7 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
                         res=scipy.stats.spearmanr(total2[:,1],resample)
                         statistics2+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During_Mean.txt", statistics2)
+                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During_Mean.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 os.chdir("..")
                 f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
                 a4.hist(np.array(statistics2)[:,0])
@@ -1188,7 +1188,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
             specent=np.array(specent)
             total = np.column_stack((specent,spikespremot,spikesdur))
             os.chdir("Results")
-            np.savetxt("Data_Raw_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m) + ".txt", total)
+            np.savetxt("Data_Raw_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m) + ".txt", total, header="First column is the spectral value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
             os.chdir("..")
             #Here it will give you the possibility of computing the correlations and Bootstrapping
             threshold = 3 #Standard Deviation threshold for Z score identification of outliers
@@ -1230,7 +1230,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
                         res=scipy.stats.spearmanr(total1[:,1],resample)
                         statistics+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor.txt", statistics)
+                np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 os.chdir("..")
                 f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
                 print(final)
@@ -1263,7 +1263,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
                         res=scipy.stats.spearmanr(total2[:,1],resample)
                         statistics2+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + y[g] + "_tone_" + str(m)+ "_During.txt", statistics2)   
+                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + y[g] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")   
                 os.chdir("..")
                 f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
                 print(final)
