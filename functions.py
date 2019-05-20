@@ -605,7 +605,7 @@ def corrduration(spikefile, motifile, n_iterations=n_iterations,fs=fs):
                 step1=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
                 array=np.append(array, np.array([[dur[j]],[np.size(step1)/dur[j]]]).reshape(-1,2), axis=0)
             array=array[1:]
-            np.savetxt("Data_Raw_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", array)
+            np.savetxt("Data_Raw_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", array, header="First column is the duration value, second is the number of spikes.")
             threshold = 3 #Standard Deviation threshold for Z score identification of outliers
             z = np.abs(scipy.stats.zscore(array))
             array=array[(z < threshold).all(axis=1)]
@@ -633,7 +633,7 @@ def corrduration(spikefile, motifile, n_iterations=n_iterations,fs=fs):
                         resample=np.random.choice(array[:,0], len(array[:,0]), replace=True)
                         res=scipy.stats.spearmanr(array[:,1],resample)
                         statistics+=[[res[0],res[1]]]
-                np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics)) #First column is the correlation value, second is the p value.
+                np.savetxt("Data_Boot_Corr_Duration_Result_Syb"+str(sybs[i])+".txt", np.array(statistics), header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.") #First column is the correlation value, second is the p value.
                 print("Syllable " + str(sybs[i]) +": " + str(final))
                 f.writelines("Syllable " + str(sybs[i]) +": " + str(final) + "\n")
           
@@ -877,7 +877,7 @@ def corrpitch(songfile, motifile,spikefile, lags=lags, window_size=window_size,f
         freq2=np.array(freq2)
         freq2=np.reciprocal(freq2/fs)
         total = np.column_stack((freq2,spikespremot,spikesdur))
-        np.savetxt("Data_Raw_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m) + ".txt", total)
+        np.savetxt("Data_Raw_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m) + ".txt", total, header="First column is the pitch value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
         #Here it will give you the possibility of computing the correlations and Bootstrapping
         an=input("Correlations?")
         if an.lower() == "n":
@@ -917,7 +917,7 @@ def corrpitch(songfile, motifile,spikefile, lags=lags, window_size=window_size,f
                         resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
                         res=scipy.stats.spearmanr(total1[:,1],resample)
                         statistics+=[[res[0],res[1]]]
-                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics)
+                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 print(final)
             #This will get the data for Pitch vs During     
             if len(total2) < 3 or all(b) == True:
@@ -944,7 +944,7 @@ def corrpitch(songfile, motifile,spikefile, lags=lags, window_size=window_size,f
                         resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
                         res=scipy.stats.spearmanr(total2[:,1],resample)
                         statistics2+=[[res[0],res[1]]]
-                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2)    
+                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")    
                 print(final)                  
         a2.set_xlabel("Number of Lags")
         a2.set_ylabel("Autocorrelation score")
@@ -1104,7 +1104,7 @@ def corramplitude(songfile, motifile, spikefile, fs=fs, window_size=window_size,
         integ=np.array(integ)
         if an2[0].lower() == "m":
             total = np.column_stack((amps,spikespremot,spikesdur))
-            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m) + "_" + an2 + ".txt", total)
+            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m) + "_" + an2 + ".txt", total, header="First column is the amplitude value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
             total1=np.column_stack((amps,spikespremot))
             total2=np.column_stack((amps,spikesdur))
             a2.hist(amps)
@@ -1113,7 +1113,7 @@ def corramplitude(songfile, motifile, spikefile, fs=fs, window_size=window_size,
             a2.set_xlabel("Mean Values")
         else:
             total = np.column_stack((integ,spikespremot,spikesdur))
-            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_" + an2 + ".txt", total)
+            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_" + an2 + ".txt", total, header="First column is the amplitude value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
             total1=np.column_stack((integ,spikespremot))
             total2=np.column_stack((integ,spikesdur))
             a2.hist(integ)
@@ -1133,12 +1133,12 @@ def corramplitude(songfile, motifile, spikefile, fs=fs, window_size=window_size,
             if len(total1) < 3 or all(a) == True:
                 pass
             else:
-                s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
+                s1=scipy.stats.shapiro(total1[:,0])[1] #Amplitude column
                 s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
                 homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
-                #This will get the data for Pitch vs Premotor
+                #This will get the data for Amplitude vs Premotor
                 if  comb1.all() == True: #test for normality
                     final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
                     statistics+=[[final[0],final[1]]]
@@ -1155,7 +1155,7 @@ def corramplitude(songfile, motifile, spikefile, fs=fs, window_size=window_size,
                         resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
                         res=scipy.stats.spearmanr(total1[:,1],resample)
                         statistics+=[[res[0],res[1]]]
-                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor_"+ an2 +".txt", statistics)
+                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor_"+ an2 +".txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 print(final)
                 a3.hist(np.array(statistics)[:,0])
                 a3.set_title("Bootstrap Premotor")
@@ -1185,7 +1185,7 @@ def corramplitude(songfile, motifile, spikefile, fs=fs, window_size=window_size,
                         resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
                         res=scipy.stats.spearmanr(total2[:,1],resample)
                         statistics2+=[[res[0],res[1]]]
-                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_During_" + an2 + ".txt", statistics2)
+                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + answer + "_tone_" + str(m)+ "_During_" + an2 + ".txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 a4.hist(np.array(statistics2)[:,0])
                 a4.set_title("Bootstrap During")
                 a4.set_xlabel("Correlation Values")
@@ -1374,7 +1374,7 @@ def corrspectral(songfile, motifile, spikefile, fs=fs,  window_size=window_size,
         spikespremot=np.array(spikespremot)[:,0]
         specent=np.array(specent)
         total = np.column_stack((specent,spikespremot,spikesdur))
-        np.savetxt("Data_Raw_Corr_SpecEnt_Result_Syb" + answer + "_tone_" + str(m) + ".txt", total)
+        np.savetxt("Data_Raw_Corr_SpecEnt_Result_Syb" + answer + "_tone_" + str(m) + ".txt", total, header="First column is the spectral value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
         #Here it will give you the possibility of computing the correlations and Bootstrapping
         an=input("Correlations?")
         if an.lower() == "n":
@@ -1418,7 +1418,7 @@ def corrspectral(songfile, motifile, spikefile, fs=fs,  window_size=window_size,
                         resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
                         res=scipy.stats.spearmanr(total1[:,1],resample)
                         statistics+=[[res[0],res[1]]]
-                np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics)
+                np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + answer + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
                 print(final)
                 a3.hist(np.array(statistics)[:,0])
                 a3.set_title("Bootstrap Premotor")
@@ -1448,7 +1448,7 @@ def corrspectral(songfile, motifile, spikefile, fs=fs,  window_size=window_size,
                         resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
                         res=scipy.stats.spearmanr(total2[:,1],resample)
                         statistics2+=[[res[0],res[1]]]
-                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2)    
+                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + answer + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")    
                 print(final)
                 a4.hist(np.array(statistics2)[:,0])
                 a4.set_title("Bootstrap During")
