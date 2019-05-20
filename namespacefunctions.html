@@ -221,7 +221,9 @@ Functions</h2></td></tr>
 <p><i>window_size </i>: int The size of the window for the convolve function (RMS of signal)</p>
 <p><i>means</i>: .txt File that contains the cutting points for the tones. If None, it will allow you to create this list of means by visual inspection of plots. </p>
 <h2>Returns </h2>
-<p>This function will save as .txt files all the correlation data (raw and bootstrapped).</p>
+<p>This function will save as .txt files all the correlation data (raw and bootstrapped). </p>
+<p> raw file: First column is the amplitude value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.</p>
+<p> bootstrap file: First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.</p>
 </div>
 </div>
 <a id="ae60d5c4809eed2526a9805b6712c3539"></a>
@@ -270,6 +272,8 @@ Functions</h2></td></tr>
 <p> <i>fs</i>: int Sampling frequency </p>
 <h2>Returns </h2>
 <p>This function will save as .txt files all the correlation data (raw and bootstrapped).</p>
+<p> raw file: First column is the duration value, second is the number of spikes inside the respective duration.</p>
+<p> bootstrap file: First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.</p>
 </div>
 </div>
 <a id="a33dbe7f5c2d1558356c28c5a0d7b1515"></a>
@@ -341,6 +345,8 @@ Functions</h2></td></tr>
 <p><i>means</i>: .txt File that contains the cutting points for the tones. If None, it will allow you to create this list of means by visual inspection of plots. </p>	
 <h2>Returns </h2>
 <p>This function will save as .txt files all the correlation data (raw and bootstrapped).</p>
+<p> raw file: First column is the pitch value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.</p>
+<p> bootstrap file: First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.</p>
 </div>
 </div>
 <a id="a571bf37894105970022b53eb4357324c"></a>
@@ -403,6 +409,8 @@ Functions</h2></td></tr>
 <p><i>means</i>: .txt File that contains the cutting points for the tones. If None, it will allow you to create this list of means by visual inspection of plots. </p>
 <h2>Returns </h2>
 <p>This function will save as .txt files all the correlation data (raw and bootstrapped).</p>
+<p> raw file: First column is the spectral value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.</p>
+<p> bootstrap file: First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.</p>
 </div>
 </div>
 <a id="a19165e310705831af07e06351be68a7e"></a>
