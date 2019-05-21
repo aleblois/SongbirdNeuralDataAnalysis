@@ -16,6 +16,7 @@ window_size=100 #For envelope
 lags=100 #For Autocorrelation
 alpha=0.05 #For P value
 premot=0.05 # Premotor window
+binwidth=0.02 #for PSTH
 
 ##Gets all the folders
 current_dir = os.getcwd()
@@ -48,7 +49,7 @@ for item in range(len(listsubdirs)):
         
         #PSTH
         if input("PTSH?").lower() == "y" or "":
-            functionspop.psth(spikefile+".txt", motifile, fs, basebeg, basend )
+            functionspop.psth(spikefile+".txt", motifile, fs, basebeg, basend, binwidth)
             os.chdir("Unit_"+spikefile)
             py.savefig("PSTH.tif")
             py.close()
