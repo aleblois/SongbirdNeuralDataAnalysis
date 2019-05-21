@@ -55,7 +55,7 @@ def sortsyls(motifile):
         if imported[i][-1] == "b": 
             b=[imported[i].split(",")]
             arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "c": 
+        if imported[i][-1] == "y": 
             c=[imported[i].split(",")]  
             arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
         if imported[i][-1] == "d": 
@@ -66,7 +66,16 @@ def sortsyls(motifile):
             arre=np.append(arre, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
             
     arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]
-    return arra, arrb, arrc, arrd, arre
+    k=[arra,arrb,arrc,arrd,arre]
+    finallist=[]
+    for i in k:
+        print(i.size)
+        if i.size != 0:
+            finallist+=[i]
+        else:
+            continue
+        
+    return finallist
 
 def tellme(s):
     print(s)
@@ -457,30 +466,27 @@ def spectrogram(songfile, beg, end, fs):
 # basebeg is the start time for baseline computation
 #
 # basend is the end time for baseline computation    
-def psth(spikefile, motifile, fs, basebeg, basend):        
-    arra,arrb,arrc,arrd,arre=sortsyls(motifile)
-    arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
+def psth(spikefile, motifile, fs, basebeg, basend, binwidth):        
+    finallist=sortsyls(motifile)
     #Starts to plot the PSTH
     spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
-    binwidth=0.02
     adjust=0
     adj2=0
     meandurall=0
     py.fig, ax = py.subplots(2,1, figsize=(18,15))
-    k=[arra,arrb,arrc,arrd] #considering only up to Syb D
     x2=[]
     y2=[]
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
-    for i in range(len(k)):
-            used=k[i] # sets which array from k will be used.
+    for i in range(len(finallist)):
+            used=finallist[i]/fs # sets which array from k will be used.
             meandurall=np.mean(used[:,1]-used[:,0])
             spikes1=[]
             res=-1
             spikes=[]
             basespk=[]
             n0,n1=0,2
-            
+            colors=["black", "blue", "green"]
             for j in range(len(used)):
                 step1=[]
                 step2=[]
@@ -494,7 +500,7 @@ def psth(spikefile, motifile, fs, basebeg, basend):
                 res=res+1
                 spikes2=spikes1
                 spikes3=np.concatenate(spikes2[n0:n1]) # Gets the step2 and step3 arrays for scatter
-                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color="black")
+                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color=colors[i])
                 n0+=2
                 n1+=2
                 ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
@@ -530,7 +536,7 @@ def psth(spikefile, motifile, fs, basebeg, basend):
             #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
             x2+=[x1[:-1]+adj2]
             y2+=[y1[:]]
-            adj2=binwidth/4
+            adj2=binwidth/20
             adjust=meandurall+shoulder+adjust+adj2
     x4=np.sort(np.concatenate(x2))
     y4=np.concatenate(y2)
@@ -563,19 +569,14 @@ def psth(spikefile, motifile, fs, basebeg, basend):
 def corrduration(spikefile, motifile, n_iterations,fs, alpha):      
     #Read and import mat file (new version)
     sybs=["A","B","C","D","E"]
-    arra,arrb,arrc,arrd,arre=sortsyls(motifile)
-    arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
-    dura=arra[:,1]-arra[:,0]; durb=arrb[:,1]-arrb[:,0];durc=arrc[:,1]-arrc[:,0]; durd=arrd[:,1]-arrd[:,0]; dure=arre[:,1]-arre[:,0]
-    
+    finallist=sortsyls(motifile)    
     #Starts to compute correlations and save the data into txt file (in case the user wants to use it in another software)
     spused=np.loadtxt(spikefile)
-    k=[arra,arrb,arrc,arrd] #Here it includes only upto syllable D
-    g=[dura,durb,durc,durd,dure]
     final=[]
     f = open("SummaryDuration.txt", "w+")
-    for i in range(len(k)):
-            used=k[i]
-            dur=g[i]
+    for i in range(len(finallist)):
+            used=finallist[i]/fs
+            dur=used[:,1]-used[:,0]
             array=np.empty((1,2))
             statistics=[]
             for j in range(len(used)):
@@ -723,16 +724,13 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, n_iterations, 
    #Read and import files that will be needed
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
-    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
-    
+    finallist=sortsyls(motifile)  
     fichier = open("SummaryCorrPitch.txt", "w+")
-    
-    arrs=[arra,arrb,arrc,arrd]
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
     
-    for obj in range(len(arrs)):
-        used=arrs[obj]
+    for obj in range(len(finallist)):
+        used=finallist[obj]
         means = np.loadtxt("..\\..\\"+y[obj]).astype(int)
         syb=song[int(used[0][0]):int(used[0][1])]
     
@@ -931,16 +929,13 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
     #Read and import files that will be needed
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
-    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
-    
+    finallist=sortsyls(motifile)  
     f = open("SummaryCorrAmp.txt", "w+")
-    
-    x=[arra,arrb,arrc,arrd]
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
     
-    for g in range(len(x)):
-        used=x[g]
+    for g in range(len(finallist)):
+        used=finallist[g]
         means = np.loadtxt("..\\..\\"+y[g]).astype(int)
         syb=song[int(used[0][0]):int(used[0][1])]
         
@@ -1148,15 +1143,12 @@ def complexity_entropy_spectral(signal, sampling_rate, bands=None):
 def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, alpha, premot):
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
-    
-    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
+    finallist=sortsyls(motifile)  
     f = open("SummaryCorrSpecEnt.txt", "w+")
-    
-    x=[arra,arrb,arrc,arrd]
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
-    for g in range(len(y)):
-        used=x[g]
+    for g in range(len(finallist)):
+        used=finallist[g]
         means = np.loadtxt("..\\..\\"+y[g]).astype(int)
         syb=song[int(used[0][0]):int(used[0][1])]
         # Autocorrelation and Distribution 
@@ -1263,7 +1255,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
                         res=scipy.stats.spearmanr(total2[:,1],resample)
                         statistics2+=[[res[0],res[1]]]
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + y[g] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")   
+                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")   
                 os.chdir("..")
                 f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
                 print(final)
