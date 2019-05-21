@@ -67,7 +67,7 @@ def sortsyls(motifile):
         if imported[i][-1] == "b": 
             b=[imported[i].split(",")]
             arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "c": 
+        if imported[i][-1] == "y": 
             c=[imported[i].split(",")]  
             arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
         if imported[i][-1] == "d": 
@@ -78,7 +78,16 @@ def sortsyls(motifile):
             arre=np.append(arre, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
             
     arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]
-    return arra, arrb, arrc, arrd, arre
+    k=[arra,arrb,arrc,arrd,arre]
+    finallist=[]
+    for i in k:
+        print(i.size)
+        if i.size != 0:
+            finallist+=[i]
+        else:
+            continue
+        
+    return finallist
 
 def tellme(s):
     print(s)
@@ -479,8 +488,7 @@ def spectrogram(songfile, beg, end, fs=fs):
 #
 # basend is the end time for baseline computation    
 def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):        
-    arra,arrb,arrc,arrd,arre=sortsyls(motifile)
-    arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
+    finallist=sortsyls(motifile)
     #Starts to plot the PSTH
     spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
@@ -488,12 +496,11 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
     adj2=0
     meandurall=0
     py.fig, ax = py.subplots(2,1, figsize=(18,15))
-    k=[arra,arrb,arrc,arrd] #considering only up to Syb D
     x2=[]
     y2=[]
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
-    for i in range(len(k)):
-            used=k[i] # sets which array from k will be used.
+    for i in range(len(finallist)):
+            used=finallist[i]/fs # sets which array from finallist will be used.
             meandurall=np.mean(used[:,1]-used[:,0])
             spikes1=[]
             res=-1
@@ -583,19 +590,14 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
 def corrduration(spikefile, motifile, n_iterations=n_iterations,fs=fs):      
     #Read and import mat file (new version)
     sybs=["A","B","C","D","E"]
-    arra,arrb,arrc,arrd,arre=sortsyls(motifile)
-    arra,arrb,arrc,arrd,arre = arra/fs,arrb/fs,arrc/fs,arrd/fs,arre/fs
-    dura=arra[:,1]-arra[:,0]; durb=arrb[:,1]-arrb[:,0];durc=arrc[:,1]-arrc[:,0]; durd=arrd[:,1]-arrd[:,0]; dure=arre[:,1]-arre[:,0]
-    
+    finallist=sortsyls(motifile)    
     #Starts to compute correlations and save the data into txt file (in case the user wants to use it in another software)
     spused=np.loadtxt(spikefile)
-    k=[arra,arrb,arrc,arrd] #Here it includes only upto syllable D
-    g=[dura,durb,durc,durd,dure]
     final=[]
     f = open("SummaryDuration.txt", "w+")
-    for i in range(len(k)):
-            used=k[i]
-            dur=g[i]
+    for i in range(len(finallist)):
+            used=finallist[i]
+            dur=used[:,1]-used[:,0]
             array=np.empty((1,2))
             statistics=[]
             for j in range(len(used)):
@@ -739,18 +741,18 @@ def corrpitch(songfile, motifile,spikefile, lags=lags, window_size=window_size,f
     #Read and import files that will be needed
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
-    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
+    finallist=sortsyls(motifile)
     
     #Will filter which arra will be used
     answer=input("Which syllable?")
     if answer.lower() == "a":
-        used=arra
+        used=finallist[0]
     elif answer.lower() == "b":
-        used=arrb
+        used=finallist[1]
     elif answer.lower() == "c":
-        used=arrc    
+        used=finallist[2]  
     elif answer.lower() == "d":
-        used=arrd
+        used=finallist[3]
     
     if means is not None:
         means = np.loadtxt(means).astype(int)
@@ -824,7 +826,7 @@ def corrpitch(songfile, motifile,spikefile, lags=lags, window_size=window_size,f
             syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
             sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
             x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
-            f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
+            f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags), unbiased=True), kind="quadratic")
             xnew=np.linspace(min(x2),max(x2), num=1000)
             a1.plot(xnew,f(xnew))
             a1.set_xlabel("Number of Lags")
@@ -855,7 +857,7 @@ def corrpitch(songfile, motifile,spikefile, lags=lags, window_size=window_size,f
             syb=song[int(used[x][0]):int(used[x][1])]
             sybcut=syb[means[m-1]:means[m]]
             x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
-            f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
+            f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags), unbiased=True), kind="quadratic")
             xnew=np.linspace(min(x2),max(x2), num=1000)
             a1.plot(xnew,f(xnew))
             x3=xnew[int(coords5[0]):int(coords5[1])]
@@ -996,18 +998,18 @@ def corramplitude(songfile, motifile, spikefile, fs=fs, window_size=window_size,
     #Read and import files that will be needed
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
-    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
+    finallist=sortsyls(motifile)  
        
     #Will filter which arra will be used
     answer=input("Which syllable?")
     if answer.lower() == "a":
-        used=arra
+        used=finallist[0]
     elif answer.lower() == "b":
-        used=arrb
+        used=finallist[1]
     elif answer.lower() == "c":
-        used=arrc    
+        used=finallist[2]    
     elif answer.lower() == "d":
-        used=arrd
+        used=finallist[3]
     
     if means is not None:
         means = np.loadtxt(means).astype(int)
@@ -1276,18 +1278,18 @@ def corrspectral(songfile, motifile, spikefile, fs=fs,  window_size=window_size,
     spused=np.loadtxt(spikefile)
     song=np.load(songfile)
     
-    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
+    finallist=sortsyls(motifile)  
     
     #Will filter which arra will be used
     answer=input("Which syllable?")
     if answer.lower() == "a":
-        used=arra
+        used=finallist[0]
     elif answer.lower() == "b":
-        used=arrb
+        used=finallist[1]
     elif answer.lower() == "c":
-        used=arrc    
+        used=finallist[2]    
     elif answer.lower() == "d":
-        used=arrd
+        used=finallist[3]
     
     if means is not None:
         means = np.loadtxt(means).astype(int)
