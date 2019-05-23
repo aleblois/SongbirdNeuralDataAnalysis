@@ -57,6 +57,16 @@ for item in range(len(listsubdirs)):
         else:
             pass
         
+        #ISI
+        if input("ISI?").lower() == "y" or "":
+            functionspop.ISI(spikefile+".txt")
+            os.chdir("Unit_"+spikefile)
+            py.savefig("ISI.tif")
+            py.close()
+            os.chdir("..")
+        else:
+            pass
+        
         #Correlation Duration
         if input("Correlation Duration?").lower() == "y" or "":
             os.chdir("Unit_"+spikefile)
