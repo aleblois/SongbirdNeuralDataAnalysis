@@ -1269,15 +1269,14 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
 
 
 def gettones(songfile,motifile,fs, window_size):
-    arra,arrb,arrc,arrd, arre = sortsyls(motifile)
+    finallist=sortsyls(motifile)  
     song=np.load(songfile)
     Syls=["A","B","C","D"]
-    arrs=[arra,arrb,arrc,arrd]
     
     #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
-    for x in range(len(Syls)):        
+    for x in range(len(finallist)):        
         fig, az = py.subplots()
-        used=arrs[x]
+        used=finallist[x]
         example=song[int(used[0][0]):int(used[0][1])]
         abso=abs(example)
         az.plot(example)
@@ -1330,3 +1329,11 @@ def gettones(songfile,motifile,fs, window_size):
         for l in range(1,len(means)):
             py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])
         py.savefig("../Cut"+ Syls[x]+".jpg")
+
+def ISI(spikefile):
+    spikes=np.loadtxt(spikefile)
+    times=np.sort(np.diff(spikes))*1000
+    py.hist(times, bins= np.arange(np.min(times), np.max(times), 1))
+    py.xscale('log')
+    py.xlabel("Millisecond (ms)")
+    py.ylabel("Counts/bin")
