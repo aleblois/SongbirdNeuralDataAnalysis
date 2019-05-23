@@ -90,6 +90,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a05894682d9e461c24a70931abdf5be0c"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a05894682d9e461c24a70931abdf5be0c">lfpdown</a> (LFPfile, fs)</td></tr>
 <tr class="memdesc:a05894682d9e461c24a70931abdf5be0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function will downsample your LFP signal to 1000Hz and save it as .npy file.  <a href="#a05894682d9e461c24a70931abdf5be0c">More...</a><br /></td></tr>
 <tr class="separator:a05894682d9e461c24a70931abdf5be0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a22df8ba49f62e81ac8ed71cefbea0000"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a22df8ba49f62e81ac8ed71cefbea0000">ISI</a> (spikefile)</td></tr>
+<tr class="memdesc:a22df8ba49f62e81ac8ed71cefbea0000"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function will compute and plot an logarithmic inter spike interval histogram. <a href="#a22df8ba49f62e81ac8ed71cefbea0000">More...</a><br /></td></tr>
+<tr class="separator:a22df8ba49f62e81ac8ed71cefbea0000"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a22162733069818752c0222ceffa4d504"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacefunctions.html#a22162733069818752c0222ceffa4d504">spectrogram</a> (songfile, beg, end, fs)</td></tr>
 <tr class="memdesc:a22162733069818752c0222ceffa4d504"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function generates spectrogram of the motifs in the song raw signal.  <a href="#a22162733069818752c0222ceffa4d504">More...</a><br /></td></tr>
 <tr class="separator:a22162733069818752c0222ceffa4d504"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -487,6 +490,31 @@ Functions</h2></td></tr>
 <p>It will return the number of analog signals inside the file, the number of spike trains, a numpy array with the time, and the sampling rate of the recording. </p>
 </div>
 </div>
+
+<a id="a22df8ba49f62e81ac8ed71cefbea0000"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a22df8ba49f62e81ac8ed71cefbea0000">&#9670;&nbsp;</a></span>ISI()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def functions.ISI </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>file</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This function will compute and plot a logarithmic inter spike interval histogram. </p>
+<h2>Arguments: </h2>
+<p><i>spikefile</i>: .txt File with the spike times.</p>
+<h2>Returns: </h2>
+<p>A logarithmic ISI graph.
+</div>
+</div>
+	
 <a id="a05894682d9e461c24a70931abdf5be0c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a05894682d9e461c24a70931abdf5be0c">&#9670;&nbsp;</a></span>lfpdown()</h2>
 
