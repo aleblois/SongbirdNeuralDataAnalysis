@@ -108,18 +108,18 @@ def smoothed(inputSignal,fs=fs, smooth_win=10):
     
 #Fast loop to check visually if the syllables are ok. I've been finding problems in A syllables, so I recommend checking always before analysis.
 def checksyls(songfile,motifile, beg, end):
-    arra, arrb, arrc, arrd, arre= sortsyls(motifile)
+    finallist=sortsyls(motifile)  
     song=np.load(songfile)
     #Will filter which arra will be used
     answer=input("Which syllable?")
     if answer.lower() == "a":
-        used=arra
+        used=finallist[0]
     elif answer.lower() == "b":
-        used=arrb
+        used=finallist[1]
     elif answer.lower() == "c":
-        used=arrc    
+        used=finallist[2]    
     elif answer.lower() == "d":
-        used=arrd
+        used=finallist[3]
     
     print("This syb has "+ str(len(used)) + " renditions.")
     
@@ -196,7 +196,6 @@ def getsong(file):
     data, data_seg = read(file)
     for i in range(len(data_seg.analogsignals)):
         if data_seg.analogsignals[i].name == 'Channel bundle (CSC10) ':
-            print(i)
             song=data_seg.analogsignals[i].as_array()
         else:
             continue
@@ -499,7 +498,7 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
     x2=[]
     y2=[]
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
-    for i in range(len(finallist)):
+    for i in range(len(finallist)-1):
             used=finallist[i]/fs # sets which array from finallist will be used.
             meandurall=np.mean(used[:,1]-used[:,0])
             spikes1=[]
@@ -557,7 +556,7 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
             #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
             x2+=[x1[:-1]+adj2]
             y2+=[y1[:]]
-            adj2=binwidth/4
+            adj2=binwidth/20
             adjust=meandurall+shoulder+adjust+adj2
     x4=np.sort(np.concatenate(x2))
     y4=np.concatenate(y2)
@@ -1456,3 +1455,12 @@ def corrspectral(songfile, motifile, spikefile, fs=fs,  window_size=window_size,
                 a4.set_title("Bootstrap During")
                 a4.set_xlabel("Correlation Values")
                 py.savefig("Corr_SpecEnt_syb"+ answer +"_tone"+ str(m)+".tif")
+
+
+def ISI(spikefile):
+    spikes=np.loadtxt(spikefile)
+    times=np.sort(np.diff(spikes))*1000
+    py.hist(times, bins= np.arange(np.min(times), np.max(times), 1))
+    py.xscale('log')
+    py.xlabel("Millisecond (ms)")
+    py.ylabel("Counts/bin")
