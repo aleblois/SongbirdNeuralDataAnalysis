@@ -13,7 +13,9 @@ Requires:
     
     * neo 0.7.1    (https://neo.readthedocs.io/en/0.7.1/)
     
-    * matplotlib 3.0.2   
+    * matplotlib 3.0.2  
+    
+    * nolds 0.5.1
     
     * numpy 1.15.4
     
