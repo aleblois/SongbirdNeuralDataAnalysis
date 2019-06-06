@@ -5,7 +5,7 @@ Created on Thu Apr 25 20:58:16 2019
 @author: eduar
 """
 
-import functionspop
+#import functionspop
 import glob
 import os
 import pylab as py
@@ -93,6 +93,10 @@ for item in range(len(listsubdirs)):
     basend=int(infosr[4])
     motifile="..\\" +"labels.txt"
     smr="..\\" + file
+    ### Get the tones/sybcuts for further analysis
+    if not os.path.isfile("CheckSylsFreq.txt"):
+        fich= open("CheckSylsFreq.txt", mode="w+")
+        fich.close()
     
     ### Get LFP downsampled
     print("Obtaining the Downsampled LFP..")
