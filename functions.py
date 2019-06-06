@@ -57,9 +57,9 @@ def sortsyls(motifile):
     imported = f.read().splitlines()
     
     #Excludes everything that is not a real syllable
-    a=[] ; b=[] ; c=[] ; d=[]; e=[]
+    a=[] ; b=[] ; c=[] ; d=[]; e=[]; f=[]
     arra=np.empty((1,2)); arrb=np.empty((1,2)); arrc=np.empty((1,2))
-    arrd=np.empty((1,2)); arre=np.empty((1,2))
+    arrd=np.empty((1,2)); arre=np.empty((1,2)); arrf=np.empty((1,2))
     for i in range(len(imported)):
         if imported[i][-1] == "a":
             a=[imported[i].split(",")]
@@ -67,7 +67,7 @@ def sortsyls(motifile):
         if imported[i][-1] == "b": 
             b=[imported[i].split(",")]
             arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "y": 
+        if imported[i][-1] == "c": 
             c=[imported[i].split(",")]  
             arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
         if imported[i][-1] == "d": 
@@ -76,9 +76,12 @@ def sortsyls(motifile):
         if imported[i][-1] == "e": 
             e=[imported[i].split(",")]   
             arre=np.append(arre, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
+        if imported[i][-1] == "f": 
+            f=[imported[i].split(",")]   
+            arrf=np.append(arrf, np.array([int(e[0][0]), int(e[0][1])], float).reshape(1,2), axis=0)
             
-    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:]
-    k=[arra,arrb,arrc,arrd,arre]
+    arra=arra[1:]; arrb=arrb[1:]; arrc=arrc[1:]; arrd=arrd[1:] ; arre=arre[1:] ;  arrf=arrf[1:]
+    k=[arra,arrb,arrc,arrd,arre, arrf]
     finallist=[]
     for i in k:
         print(i.size)
@@ -153,6 +156,11 @@ def getEnvelope(inputSignal, window_size=window_size):
         outputSignal.append (maximum)
 
     return outputSignal
+
+def jumpsyl():
+    with open("CheckSylsFreq.txt", "r") as datafile:
+        fich=datafile.read().split()[1::4]    
+    return fich
 ###############################################################################################################################
 
 
@@ -377,6 +385,8 @@ def spikeshapes(file, raw, rawfiltered):
         x1=np.empty([1,windowsize+2],int)
         for n in range(len(channel1)):
             a1= int(channel1[n]*ansampling_rate)-57
+            if a1 == -57:
+                continue
             analogtxt1=LFP[a1:a1+windowsize].reshape(1,windowsize)
             y1 = np.array([[a1],[a1+windowsize]], np.int32).reshape(1,2)
             res1 = np.append(y1,analogtxt1).reshape(1,-1)
@@ -486,7 +496,8 @@ def spectrogram(songfile, beg, end, fs=fs):
 # basebeg is the start time for baseline computation
 #
 # basend is the end time for baseline computation    
-def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):        
+def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):      
+    sybs=["A","B","C","D","E"]
     finallist=sortsyls(motifile)
     #Starts to plot the PSTH
     spused=np.loadtxt(spikefile)
@@ -497,8 +508,9 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
     py.fig, ax = py.subplots(2,1, figsize=(18,15))
     x2=[]
     y2=[]
+    f = open("CheckSylsFreq.txt", "w+")
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
-    for i in range(len(finallist)-1):
+    for i in range(len(finallist)):
             used=finallist[i]/fs # sets which array from finallist will be used.
             meandurall=np.mean(used[:,1]-used[:,0])
             spikes1=[]
@@ -551,14 +563,16 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
             # Computation of spikes
             spikes=np.sort(np.concatenate(spikes2))
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
-            print(y1)
+            print(np.mean(y1))
+            if np.mean(y1) < 5:
+                f.writelines("Syllable " + str(sybs[i]) +" : " + str(np.mean(y1)) + "\n")
             ax[0].axvline(x=(shoulder+meandurall)+adjust, color="grey", linestyle="--")
             #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
             x2+=[x1[:-1]+adj2]
             y2+=[y1[:]]
-            adj2=binwidth/20
+            adj2=binwidth/4
             adjust=meandurall+shoulder+adjust+adj2
-    x4=np.sort(np.concatenate(x2))
+    x4=np.sort(np.concatenate(x2))+binwidth/2
     y4=np.concatenate(y2)
     ax[0].plot(x4,y4, color="red")        
     #f = scipy.interpolate.interp1d(x4, y4, kind="linear")
@@ -569,6 +583,7 @@ def psth(spikefile, motifile, basebeg, basend,binwidth=binwidth, fs=fs):
     black_dashed  = mlines.Line2D([], [], color="black", label="+STD", linestyle="--")
     green_line  = mlines.Line2D([], [], color="green", label="Mean")
     ax[0].legend(handles=[black_line,black_dashed,green_line], loc="upper left")
+    f.close()
     
 
     
@@ -592,10 +607,14 @@ def corrduration(spikefile, motifile, n_iterations=n_iterations,fs=fs):
     finallist=sortsyls(motifile)    
     #Starts to compute correlations and save the data into txt file (in case the user wants to use it in another software)
     spused=np.loadtxt(spikefile)
+    check=jumpsyl()
     final=[]
     f = open("SummaryDuration.txt", "w+")
     for i in range(len(finallist)):
-            used=finallist[i]
+        if sybs[i] in check:
+            continue
+        else:
+            used=finallist[i]/fs
             dur=used[:,1]-used[:,0]
             array=np.empty((1,2))
             statistics=[]
@@ -899,7 +918,7 @@ def corrpitch(songfile, motifile,spikefile, lags=lags, window_size=window_size,f
             else:
                 s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
                 s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
-                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                homo=scipy.stats.levene(total1[:,0],total1[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
                 if  comb1.all() == True: #test for normality
@@ -1136,7 +1155,7 @@ def corramplitude(songfile, motifile, spikefile, fs=fs, window_size=window_size,
             else:
                 s1=scipy.stats.shapiro(total1[:,0])[1] #Amplitude column
                 s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
-                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                homo=scipy.stats.levene(total1[:,0],total1[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
                 #This will get the data for Amplitude vs Premotor
@@ -1400,7 +1419,7 @@ def corrspectral(songfile, motifile, spikefile, fs=fs,  window_size=window_size,
             else:
                 s1=scipy.stats.shapiro(total1[:,0])[1] #Spectral Entropy column
                 s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
-                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                homo=scipy.stats.levene(total1[:,0],total1[:,1])[1]
                 comb1=np.array([s1,s2,homo])
                 comb1=comb1>alpha
                 if  comb1.all() == True: #test for normality
