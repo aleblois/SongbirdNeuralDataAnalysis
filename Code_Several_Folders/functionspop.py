@@ -55,7 +55,7 @@ def sortsyls(motifile):
         if imported[i][-1] == "b": 
             b=[imported[i].split(",")]
             arrb=np.append(arrb, np.array([int(b[0][0]), int(b[0][1])], float).reshape(1,2), axis=0)
-        if imported[i][-1] == "y": 
+        if imported[i][-1] == "c": 
             c=[imported[i].split(",")]  
             arrc=np.append(arrc, np.array([int(c[0][0]), int(c[0][1])], float).reshape(1,2), axis=0)
         if imported[i][-1] == "d": 
@@ -141,6 +141,12 @@ def getEnvelope(inputSignal, window_size):
         outputSignal.append (maximum)
 
     return outputSignal
+
+def jumpsyl():
+    with open("..\\CheckSylsFreq.txt", "r") as datafile:
+        fich=datafile.read().split()[1::4]    
+    return fich
+    
 ###############################################################################################################################
 
 
@@ -350,20 +356,22 @@ def spikeshapes(file, raw, rawfiltered):
     answer4 = input("Would you like to see an example of spike from each file? [Y/n]?")
     for m in range(n_spike_trains):
         Chprov1 = data.list_units[m].annotations["id"]
-        Label1 = Chprov1.split("#")[1]
+        #Label1 = Chprov1.split("#")[1]
         channel1 = np.loadtxt(Chprov1+".txt")    
         print(Chprov1)
         print("Starting to get the spikeshapes... Grab a book or something, this might take a while!")
         x1=np.empty([1,windowsize+2],int)
         for n in range(len(channel1)):
             a1= int(channel1[n]*ansampling_rate)-57
+            if a1 == -57:
+                continue
             analogtxt1=LFP[a1:a1+windowsize].reshape(1,windowsize)
             y1 = np.array([[a1],[a1+windowsize]], np.int32).reshape(1,2)
             res1 = np.append(y1,analogtxt1).reshape(1,-1)
             x1=np.append(x1,res1, axis=0)
         b1=x1[1:]    
         print("\n" + "Voilà!")   
-        np.savetxt("SpikeShape#"+Label1+".txt", b1, header="First column = Initial Time; Second column = Final Time; Third Column = First Spike Shape value, etc")
+        np.savetxt("SpikeShape#"+Chprov1+".txt", b1, header="First column = Initial Time; Second column = Final Time; Third Column = First Spike Shape value, etc")
         if answer4 == "" or answer4.lower()[0] == "y":
             window1=int(b1[0][0])
             window2=int(b1[0][1])
@@ -467,6 +475,7 @@ def spectrogram(songfile, beg, end, fs):
 #
 # basend is the end time for baseline computation    
 def psth(spikefile, motifile, fs, basebeg, basend, binwidth):        
+    sybs=["A","B","C","D","E"]
     finallist=sortsyls(motifile)
     #Starts to plot the PSTH
     spused=np.loadtxt(spikefile)
@@ -477,12 +486,13 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
     py.fig, ax = py.subplots(2,1, figsize=(18,15))
     x2=[]
     y2=[]
+    f = open("CheckSylsFreq.txt", "w+")
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
     for i in range(len(finallist)):
             used=finallist[i]/fs # sets which array from k will be used.
             meandurall=np.mean(used[:,1]-used[:,0])
             spikes1=[]
-            res=-1
+            res=0
             spikes=[]
             basespk=[]
             n0,n1=0,2
@@ -500,7 +510,7 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
                 res=res+1
                 spikes2=spikes1
                 spikes3=np.concatenate(spikes2[n0:n1]) # Gets the step2 and step3 arrays for scatter
-                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color=colors[i])
+                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color=colors[i-1])
                 n0+=2
                 n1+=2
                 ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
@@ -524,7 +534,7 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
             u,_= py.histogram(b, bins=np.arange(0,meandurall,binwidth)+binwidth, weights=np.ones(len(b))/normfactor)
             basemean=np.mean(u)
             stdbase=np.std(u)
-            axis=np.arange(meandurall/3,meandurall*2/3,binwidth)+adjust
+            axis=np.arange(meandurall/2,meandurall,binwidth)+adjust
             ax[0].plot(axis,np.ones((len(axis),))*basemean, color = "g")
             ax[0].plot(axis,np.ones((len(axis),))*(basemean+stdbase), color = "black")
             ax[0].plot(axis,np.ones((len(axis),))*(basemean-stdbase), color = "black", ls="dashed")
@@ -532,6 +542,8 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
             spikes=np.sort(np.concatenate(spikes2))
             y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
             print(y1)
+            if np.mean(y1) < 5:
+                f.writelines("Syllable " + str(sybs[i]) +" : " + str(np.mean(y1)) + "\n")
             ax[0].axvline(x=(shoulder+meandurall)+adjust, color="grey", linestyle="--")
             #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
             x2+=[x1[:-1]+adj2]
@@ -549,6 +561,7 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
     black_dashed  = mlines.Line2D([], [], color="black", label="+STD", linestyle="--")
     green_line  = mlines.Line2D([], [], color="green", label="Mean")
     ax[0].legend(handles=[black_line,black_dashed,green_line], loc="upper left")
+    f.close()
     
 
     
@@ -566,15 +579,20 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
 # n_iterations is the number of iterations for the bootstrapping
 #
 # fs is the sampling frequency
-def corrduration(spikefile, motifile, n_iterations,fs, alpha):      
+def corrduration(spikefile, motifile, n_iterations,fs, alpha):
+    print(os.getcwd())      
     #Read and import mat file (new version)
     sybs=["A","B","C","D","E"]
     finallist=sortsyls(motifile)    
     #Starts to compute correlations and save the data into txt file (in case the user wants to use it in another software)
     spused=np.loadtxt(spikefile)
+    check=jumpsyl()
     final=[]
     f = open("SummaryDuration.txt", "w+")
     for i in range(len(finallist)):
+        if sybs[i] in check:
+            continue
+        else:        
             used=finallist[i]/fs
             dur=used[:,1]-used[:,0]
             array=np.empty((1,2))
@@ -728,187 +746,190 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, n_iterations, 
     fichier = open("SummaryCorrPitch.txt", "w+")
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
-    
+    check=jumpsyl()
     for obj in range(len(finallist)):
-        used=finallist[obj]
-        means = np.loadtxt("..\\..\\"+y[obj]).astype(int)
-        syb=song[int(used[0][0]):int(used[0][1])]
-    
-        # Autocorrelation and Distribution 
-        for m in range(1,len(means)):
-            spikespremot=[]
-            spikesdur=[]
-            freq2=[]
-            coords5=[]
-            fig=py.figure(figsize=(18,15))
-            gs=py.GridSpec(2,2)
-            a2=fig.add_subplot(gs[0,0]) # First row, first column
-            a3=fig.add_subplot(gs[0,1]) # First row, second column
-            a1=fig.add_subplot(gs[1,:]) 
-            fig.suptitle("Syllable " + Syls[obj] + " Tone " + str(m))
-            for n in range(len(used)):
-                syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
-                sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
-                x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
-                f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
-                xnew=np.linspace(min(x2),max(x2), num=1000)
-                a1.plot(xnew,f(xnew))
+        if Syls[obj] in check:
+            continue
+        else:                
+            used=finallist[obj]
+            means = np.loadtxt("..\\..\\"+y[obj]).astype(int)
+            syb=song[int(used[0][0]):int(used[0][1])]
+        
+            # Autocorrelation and Distribution 
+            for m in range(1,len(means)):
+                spikespremot=[]
+                spikesdur=[]
+                freq2=[]
+                coords5=[]
+                fig=py.figure(figsize=(18,15))
+                gs=py.GridSpec(2,2)
+                a2=fig.add_subplot(gs[0,0]) # First row, first column
+                a3=fig.add_subplot(gs[0,1]) # First row, second column
+                a1=fig.add_subplot(gs[1,:]) 
+                fig.suptitle("Syllable " + Syls[obj] + " Tone " + str(m))
+                for n in range(len(used)):
+                    syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
+                    sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
+                    x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
+                    f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
+                    xnew=np.linspace(min(x2),max(x2), num=1000)
+                    a1.plot(xnew,f(xnew))
+                    a1.set_xlabel("Number of Lags")
+                    a1.set_ylabel("Autocorrelation score")
+                a1.set_label(tellme("Want to keep it? Key click (x2) for yes, mouse click for no"))
+                if not py.waitforbuttonpress(30):
+                    py.close()
+                    continue            
+                else:
+                    py.waitforbuttonpress(30)
+                    while True:           
+                        coord=[]
+                        while len(coord) < 2:
+                            tellme("Select the points for the peak.") #You should choose in the graph the range that representes the peak
+                            coord = np.asarray(py.ginput(2, timeout=-1, show_clicks=True))
+                        scat=a1.scatter(coord[:,0],coord[:,1], s=50, marker="X", zorder=10, c="b")
+                        tellme("Happy? Key click for yes, mouse click for no")
+                        if py.waitforbuttonpress(30):
+                            break
+                        else:
+                            scat.remove()
+                    coords5=coord[:,0]*10 # times ten is because of the linspace being 1000
+                    a1.clear()
+                    
+                #From now it will use the coordinates of the peak to plot the distribution and the interpolated version of the peak    
+                for x in range(len(used)):
+                    syb=song[int(used[x][0]):int(used[x][1])]
+                    sybcut=syb[means[m-1]:means[m]]
+                    x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
+                    f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
+                    xnew=np.linspace(min(x2),max(x2), num=1000)
+                    a1.plot(xnew,f(xnew))
+                    x3=xnew[int(coords5[0]):int(coords5[1])]
+                    g=scipy.interpolate.interp1d(x3,f(xnew)[int(coords5[0]):int(coords5[1])], kind="cubic")
+                    xnew2=np.linspace(min(x3),max(x3), num=1000)
+                    a2.plot(xnew2,g(xnew2))
+                    peak=np.argmax(g(xnew2))
+                    freq2+=[xnew2[peak]]
+                    beg=(used[x][0] + means[m-1])/fs
+                    end=(used[x][0] + means[m])/fs
+                    step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
+                    step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
+                    spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
+                    spikesdur+=[[np.size(step2)/(end-beg)]]
+                statistics=[]
+                statistics2=[]
+                spikesdur=np.array(spikesdur)[:,0]
+                spikespremot=np.array(spikespremot)[:,0]
+                freq2=np.array(freq2)
+                freq2=np.reciprocal(freq2/fs)
+                total = np.column_stack((freq2,spikespremot,spikesdur))
+                os.chdir("Results")
+                np.savetxt("Data_Raw_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m) + ".txt", total, header="First column is the pitch value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
+                os.chdir("..")
+                #Here it will give you the possibility of computing the correlations and Bootstrapping
+                threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+                total1=np.column_stack((freq2,spikespremot))
+                total2=np.column_stack((freq2,spikesdur))
+                z1 = np.abs(scipy.stats.zscore(total1))
+                z2 = np.abs(scipy.stats.zscore(total2))
+                total1=total1[(z1 < threshold).all(axis=1)]
+                total2=total2[(z2 < threshold).all(axis=1)]
+                a = total1[:,1] == 0
+                b = total2[:,1] == 0
+                #This will get the data for Pitch vs Premotor
+                if len(total1) < 3 or all(a) == True:
+                    pass
+                else:
+                    s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
+                    s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
+                    homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                    comb1=np.array([s1,s2,homo])
+                    comb1=comb1>alpha
+                    if  comb1.all() == True: #test for normality
+                        final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
+                        statistics+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total1[:,1],resample)
+                            statistics+=[[res[0],res[1]]]
+                    else: 
+                        final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
+                        statistics+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total1[:,1],resample)
+                            statistics+=[[res[0],res[1]]]
+                    os.chdir("Results")
+                    np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
+                    fichier.writelines("Syllable " + Syls[obj] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
+                    os.chdir("..")
+                    print(final)
+                #This will get the data for Pitch vs During     
+                if len(total2) < 3 or all(b) == True:
+                    pass
+                else:
+                    s1=scipy.stats.shapiro(total2[:,0])[1] #Pitch column
+                    s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
+                    homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
+                    comb1=np.array([s1,s2,homo])
+                    comb1=comb1>alpha
+                    if  comb1.all() == True: #test for normality
+                        final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
+                        statistics2+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total2[:,1],resample)
+                            statistics2+=[[res[0],res[1]]]
+                    else: 
+                        final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
+                        statistics2+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total2[:,1],resample)
+                            statistics2+=[[res[0],res[1]]]
+                    os.chdir("Results")
+                    np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
+                    fichier.writelines("Syllable " + Syls[obj] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
+                    os.chdir("..")
+                    print(final)                  
+                a2.set_xlabel("Number of Lags")
+                a2.set_ylabel("Autocorrelation score")
+                a3.hist(freq2, bins=int(np.mean(freq2)*0.01))
+                a3.set_xlabel("Frequency (Hz)")
                 a1.set_xlabel("Number of Lags")
                 a1.set_ylabel("Autocorrelation score")
-            a1.set_label(tellme("Want to keep it? Key click (x2) for yes, mouse click for no"))
-            if not py.waitforbuttonpress(30):
-                py.close()
-                continue            
-            else:
-                py.waitforbuttonpress(30)
-                while True:           
-                    coord=[]
-                    while len(coord) < 2:
-                        tellme("Select the points for the peak.") #You should choose in the graph the range that representes the peak
-                        coord = np.asarray(py.ginput(2, timeout=-1, show_clicks=True))
-                    scat=a1.scatter(coord[:,0],coord[:,1], s=50, marker="X", zorder=10, c="b")
-                    tellme("Happy? Key click for yes, mouse click for no")
-                    if py.waitforbuttonpress(30):
-                        break
-                    else:
-                        scat.remove()
-                coords5=coord[:,0]*10 # times ten is because of the linspace being 1000
-                a1.clear()
-                
-            #From now it will use the coordinates of the peak to plot the distribution and the interpolated version of the peak    
-            for x in range(len(used)):
-                syb=song[int(used[x][0]):int(used[x][1])]
-                sybcut=syb[means[m-1]:means[m]]
-                x2=np.arange(0,len(acf(sybcut,nlags=int(lags))),1)
-                f=scipy.interpolate.interp1d(x2,acf(sybcut, nlags=int(lags)), kind="quadratic")
-                xnew=np.linspace(min(x2),max(x2), num=1000)
-                a1.plot(xnew,f(xnew))
-                x3=xnew[int(coords5[0]):int(coords5[1])]
-                g=scipy.interpolate.interp1d(x3,f(xnew)[int(coords5[0]):int(coords5[1])], kind="cubic")
-                xnew2=np.linspace(min(x3),max(x3), num=1000)
-                a2.plot(xnew2,g(xnew2))
-                peak=np.argmax(g(xnew2))
-                freq2+=[xnew2[peak]]
-                beg=(used[x][0] + means[m-1])/fs
-                end=(used[x][0] + means[m])/fs
-                step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
-                step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
-                spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
-                spikesdur+=[[np.size(step2)/(end-beg)]]
-            statistics=[]
-            statistics2=[]
-            spikesdur=np.array(spikesdur)[:,0]
-            spikespremot=np.array(spikespremot)[:,0]
-            freq2=np.array(freq2)
-            freq2=np.reciprocal(freq2/fs)
-            total = np.column_stack((freq2,spikespremot,spikesdur))
-            os.chdir("Results")
-            np.savetxt("Data_Raw_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m) + ".txt", total, header="First column is the pitch value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
-            os.chdir("..")
-            #Here it will give you the possibility of computing the correlations and Bootstrapping
-            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
-            total1=np.column_stack((freq2,spikespremot))
-            total2=np.column_stack((freq2,spikesdur))
-            z1 = np.abs(scipy.stats.zscore(total1))
-            z2 = np.abs(scipy.stats.zscore(total2))
-            total1=total1[(z1 < threshold).all(axis=1)]
-            total2=total2[(z2 < threshold).all(axis=1)]
-            a = total1[:,1] == 0
-            b = total2[:,1] == 0
-            #This will get the data for Pitch vs Premotor
-            if len(total1) < 3 or all(a) == True:
-                pass
-            else:
-                s1=scipy.stats.shapiro(total1[:,0])[1] #Pitch column
-                s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
-                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
-                comb1=np.array([s1,s2,homo])
-                comb1=comb1>alpha
-                if  comb1.all() == True: #test for normality
-                    final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
-                    statistics+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total1[:,1],resample)
-                        statistics+=[[res[0],res[1]]]
-                else: 
-                    final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
-                    statistics+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total1[:,1],resample)
-                        statistics+=[[res[0],res[1]]]
-                os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
-                fichier.writelines("Syllable " + Syls[obj] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
-                os.chdir("..")
-                print(final)
-            #This will get the data for Pitch vs During     
-            if len(total2) < 3 or all(b) == True:
-                pass
-            else:
-                s1=scipy.stats.shapiro(total2[:,0])[1] #Pitch column
-                s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
-                homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
-                comb1=np.array([s1,s2,homo])
-                comb1=comb1>alpha
-                if  comb1.all() == True: #test for normality
-                    final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
-                    statistics2+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total2[:,1],resample)
-                        statistics2+=[[res[0],res[1]]]
-                else: 
-                    final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
-                    statistics2+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total2[:,1],resample)
-                        statistics2+=[[res[0],res[1]]]
-                os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Pitch_Result_Syb" + Syls[obj] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
-                fichier.writelines("Syllable " + Syls[obj] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
-                os.chdir("..")
-                print(final)                  
-            a2.set_xlabel("Number of Lags")
-            a2.set_ylabel("Autocorrelation score")
-            a3.hist(freq2, bins=int(np.mean(freq2)*0.01))
-            a3.set_xlabel("Frequency (Hz)")
-            a1.set_xlabel("Number of Lags")
-            a1.set_ylabel("Autocorrelation score")
-            a1.set_label(tellme("Now let's select the frequency. Key click (x2) for yes, mouse click for no")) #Here you will be asked to select a point in the peak that could represent the frequency (just to get an estimation)
-            if not py.waitforbuttonpress(30):
-                os.chdir("Figures")
-                py.savefig("Corr_Pitch_syb"+ Syls[obj] +"_tone"+ str(m)+".jpg")
-                py.close()
-                os.chdir("..")
-                continue            
-            else:
-                py.waitforbuttonpress(30)
-                while True:
-                    freq = []
-                    while len(freq) < 1:
-                        tellme("Select the point for the frequency.")
-                        freq = np.asarray(py.ginput(1, timeout=-1, show_clicks=True))
-                    scat= a1.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="b") 
-                    ann=a1.annotate(str(int(np.reciprocal(freq[:,0]/fs))) +" Hz", xy=(freq[:,0],freq[:,1]), xytext=(freq[:,0]*1.2,freq[:,1]*1.2),
-                                arrowprops=dict(facecolor="black", shrink=0.05))
-                                
-                    tellme("Happy? Key click for yes, mouse click for no")
-                    if py.waitforbuttonpress(30):
-                        os.chdir("Figures")
-                        py.savefig("Corr_Pitch_syb"+ Syls[obj] +"_tone"+ str(m)+".jpg")
-                        py.close()
-                        os.chdir("..")
-                        break
-                    else:
-                        ann.remove()
-                        scat.remove()
+                a1.set_label(tellme("Now let's select the frequency. Key click (x2) for yes, mouse click for no")) #Here you will be asked to select a point in the peak that could represent the frequency (just to get an estimation)
+                if not py.waitforbuttonpress(30):
+                    os.chdir("Figures")
+                    py.savefig("Corr_Pitch_syb"+ Syls[obj] +"_tone"+ str(m)+".jpg")
+                    py.close()
+                    os.chdir("..")
+                    continue            
+                else:
+                    py.waitforbuttonpress(30)
+                    while True:
+                        freq = []
+                        while len(freq) < 1:
+                            tellme("Select the point for the frequency.")
+                            freq = np.asarray(py.ginput(1, timeout=-1, show_clicks=True))
+                        scat= a1.scatter(freq[:,0],freq[:,1], s=50, marker="X", zorder=10, c="b") 
+                        ann=a1.annotate(str(int(np.reciprocal(freq[:,0]/fs))) +" Hz", xy=(freq[:,0],freq[:,1]), xytext=(freq[:,0]*1.2,freq[:,1]*1.2),
+                                    arrowprops=dict(facecolor="black", shrink=0.05))
+                                    
+                        tellme("Happy? Key click for yes, mouse click for no")
+                        if py.waitforbuttonpress(30):
+                            os.chdir("Figures")
+                            py.savefig("Corr_Pitch_syb"+ Syls[obj] +"_tone"+ str(m)+".jpg")
+                            py.close()
+                            os.chdir("..")
+                            break
+                        else:
+                            ann.remove()
+                            scat.remove()
 			        
 ## 
 #
@@ -933,132 +954,135 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
     f = open("SummaryCorrAmp.txt", "w+")
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
-    
+    check=jumpsyl()
     for g in range(len(finallist)):
-        used=finallist[g]
-        means = np.loadtxt("..\\..\\"+y[g]).astype(int)
-        syb=song[int(used[0][0]):int(used[0][1])]
-        
-        # Autocorrelation and Distribution 
-        for m in range(1,len(means)):
-            spikespremot=[]
-            spikesdur=[]
-            amps=[]
-            fig=py.figure(figsize=(18,15))
-            gs=py.GridSpec(2,3)
-            a1=fig.add_subplot(gs[0,:]) # First row, first column
-            a2=fig.add_subplot(gs[1,0]) # First row, second column
-            a3=fig.add_subplot(gs[1,1])
-            a4=fig.add_subplot(gs[1,2])
-            statistics=[]
-            statistics2=[]
-            for n in range(len(used)):
-                syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
-                sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
-                smooth=smoothed(np.ravel(sybcut),fs)
-                beg=(used[n][0] + means[m-1])/fs
-                end=(used[n][0] + means[m])/fs
-                step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
-                step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
-                spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
-                spikesdur+=[[np.size(step2)/(end-beg)]]
-                amps+=[np.mean(smooth)]
-            a1.plot(abs(sybcut))
-            a1.plot(smooth)
-            a1.set_title("Syllable " + Syls[g] + " Tone " + str(m))
-            a1.set_ylabel("Amplitude")
-            a1.set_xlabel("Sample points")
-            spikesdur=np.array(spikesdur)[:,0]
-            spikespremot=np.array(spikespremot)[:,0]
-            amps=np.array(amps)
-            total = np.column_stack((amps,spikespremot,spikesdur))
-            os.chdir("Results")
-            np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m) + "_Mean.txt", total, header="First column is the amplitude value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
-            os.chdir("..")
-            total1=np.column_stack((amps,spikespremot))
-            total2=np.column_stack((amps,spikesdur))
-            a2.hist(amps)
-            a2.set_title("Distribution of the Raw Means")
-            a2.set_ylabel("Frequency")
-            a2.set_xlabel("Mean Values")
-            #Start of Correlations
-            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
-            z1 = np.abs(scipy.stats.zscore(total1))
-            z2 = np.abs(scipy.stats.zscore(total2))
-            total1=total1[(z1 < threshold).all(axis=1)]
-            total2=total2[(z2 < threshold).all(axis=1)]
-            a = total1[:,1] == 0
-            b = total2[:,1] == 0
-            if len(total1) < 3 or all(a) == True:
-                pass
-            else:
-                s1=scipy.stats.shapiro(total1[:,0])[1] #Amplitude column
-                s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
-                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
-                comb1=np.array([s1,s2,homo])
-                comb1=comb1>alpha
-                #This will get the data for Amplitude vs Premotor
-                if  comb1.all() == True: #test for normality
-                    final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
-                    statistics+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total1[:,1],resample)
-                        statistics+=[[res[0],res[1]]]
-                else: 
-                    final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
-                    statistics+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total1[:,1],resample)
-                        statistics+=[[res[0],res[1]]]
+        if Syls[g] in check:
+            continue
+        else:
+            used=finallist[g]
+            means = np.loadtxt("..\\..\\"+y[g]).astype(int)
+            syb=song[int(used[0][0]):int(used[0][1])]
+            
+            # Autocorrelation and Distribution 
+            for m in range(1,len(means)):
+                spikespremot=[]
+                spikesdur=[]
+                amps=[]
+                fig=py.figure(figsize=(18,15))
+                gs=py.GridSpec(2,3)
+                a1=fig.add_subplot(gs[0,:]) # First row, first column
+                a2=fig.add_subplot(gs[1,0]) # First row, second column
+                a3=fig.add_subplot(gs[1,1])
+                a4=fig.add_subplot(gs[1,2])
+                statistics=[]
+                statistics2=[]
+                for n in range(len(used)):
+                    syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
+                    sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
+                    smooth=smoothed(np.ravel(sybcut),fs)
+                    beg=(used[n][0] + means[m-1])/fs
+                    end=(used[n][0] + means[m])/fs
+                    step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
+                    step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
+                    spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
+                    spikesdur+=[[np.size(step2)/(end-beg)]]
+                    amps+=[np.mean(smooth)]
+                a1.plot(abs(sybcut))
+                a1.plot(smooth)
+                a1.set_title("Syllable " + Syls[g] + " Tone " + str(m))
+                a1.set_ylabel("Amplitude")
+                a1.set_xlabel("Sample points")
+                spikesdur=np.array(spikesdur)[:,0]
+                spikespremot=np.array(spikespremot)[:,0]
+                amps=np.array(amps)
+                total = np.column_stack((amps,spikespremot,spikesdur))
                 os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor_Mean.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
+                np.savetxt("Data_Raw_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m) + "_Mean.txt", total, header="First column is the amplitude value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
                 os.chdir("..")
-                f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
-                print(final)
-                a3.hist(np.array(statistics)[:,0])
-                a3.set_title("Bootstrap Premotor")
-                a3.set_xlabel("Correlation Values")
-            #This will get the data for Amplitude vs During     
-            if len(total2) < 3 or all(b) == True:
-                pass
-            else:
-                s1=scipy.stats.shapiro(total2[:,0])[1] #Amplitude column
-                s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
-                homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
-                comb1=np.array([s1,s2,homo])
-                comb1=comb1>alpha
-                if  comb1.all() == True: #test for normality
-                    final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
-                    statistics2+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total2[:,1],resample)
-                        statistics2+=[[res[0],res[1]]]
-                else: 
-                    final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
-                    statistics2+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total2[:,1],resample)
-                        statistics2+=[[res[0],res[1]]]
-                os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During_Mean.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
+                total1=np.column_stack((amps,spikespremot))
+                total2=np.column_stack((amps,spikesdur))
+                a2.hist(amps)
+                a2.set_title("Distribution of the Raw Means")
+                a2.set_ylabel("Frequency")
+                a2.set_xlabel("Mean Values")
+                #Start of Correlations
+                threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+                z1 = np.abs(scipy.stats.zscore(total1))
+                z2 = np.abs(scipy.stats.zscore(total2))
+                total1=total1[(z1 < threshold).all(axis=1)]
+                total2=total2[(z2 < threshold).all(axis=1)]
+                a = total1[:,1] == 0
+                b = total2[:,1] == 0
+                if len(total1) < 3 or all(a) == True:
+                    pass
+                else:
+                    s1=scipy.stats.shapiro(total1[:,0])[1] #Amplitude column
+                    s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
+                    homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                    comb1=np.array([s1,s2,homo])
+                    comb1=comb1>alpha
+                    #This will get the data for Amplitude vs Premotor
+                    if  comb1.all() == True: #test for normality
+                        final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
+                        statistics+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total1[:,1],resample)
+                            statistics+=[[res[0],res[1]]]
+                    else: 
+                        final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
+                        statistics+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total1[:,1],resample)
+                            statistics+=[[res[0],res[1]]]
+                    os.chdir("Results")
+                    np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor_Mean.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
+                    os.chdir("..")
+                    f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
+                    print(final)
+                    a3.hist(np.array(statistics)[:,0])
+                    a3.set_title("Bootstrap Premotor")
+                    a3.set_xlabel("Correlation Values")
+                #This will get the data for Amplitude vs During     
+                if len(total2) < 3 or all(b) == True:
+                    pass
+                else:
+                    s1=scipy.stats.shapiro(total2[:,0])[1] #Amplitude column
+                    s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
+                    homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
+                    comb1=np.array([s1,s2,homo])
+                    comb1=comb1>alpha
+                    if  comb1.all() == True: #test for normality
+                        final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
+                        statistics2+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total2[:,1],resample)
+                            statistics2+=[[res[0],res[1]]]
+                    else: 
+                        final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
+                        statistics2+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total2[:,1],resample)
+                            statistics2+=[[res[0],res[1]]]
+                    os.chdir("Results")
+                    np.savetxt("Data_Boot_Corr_Amplitude_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During_Mean.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
+                    os.chdir("..")
+                    f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
+                    a4.hist(np.array(statistics2)[:,0])
+                    a4.set_title("Bootstrap During")
+                    a4.set_xlabel("Correlation Values")
+                    print(final)
+                os.chdir("Figures")
+                py.savefig(fname="Corr_Amplitude_syb"+ Syls[g] +"_tone"+ str(m) +".jpg")
+                py.close()
                 os.chdir("..")
-                f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
-                a4.hist(np.array(statistics2)[:,0])
-                a4.set_title("Bootstrap During")
-                a4.set_xlabel("Correlation Values")
-                print(final)
-            os.chdir("Figures")
-            py.savefig(fname="Corr_Amplitude_syb"+ Syls[g] +"_tone"+ str(m) +".jpg")
-            py.close()
-            os.chdir("..")
 ##
 # This function computes the Spectral Entropy of a signal. 
 #The power spectrum is computed through fft. Then, it is normalised and assimilated to a probability density function.
@@ -1147,188 +1171,192 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
     f = open("SummaryCorrSpecEnt.txt", "w+")
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
+    check=jumpsyl()  
     for g in range(len(finallist)):
-        used=finallist[g]
-        means = np.loadtxt("..\\..\\"+y[g]).astype(int)
-        syb=song[int(used[0][0]):int(used[0][1])]
-        # Autocorrelation and Distribution 
-        for m in range(1,len(means)):
-            spikespremot=[]
-            spikesdur=[]
-            specent=[]
-            fig=py.figure(figsize=(18,15))
-            gs=py.GridSpec(1,3)
-            a2=fig.add_subplot(gs[0,0]) # First row, second column
-            a3=fig.add_subplot(gs[0,1])
-            a4=fig.add_subplot(gs[0,2])
-            statistics=[]
-            statistics2=[]
-            for n in range(len(used)):
-                syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
-                sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
-                SE=complexity_entropy_spectral(sybcut[:,0],fs)
-                beg=(used[n][0] + means[m-1])/fs
-                end=(used[n][0] + means[m])/fs
-                step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
-                step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
-                spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
-                spikesdur+=[[np.size(step2)/(end-beg)]]
-                specent+=[[SE]]
-            fig.suptitle("Syllable " + Syls[g] + " Tone " + str(m))
-            spikesdur=np.array(spikesdur)[:,0]
-            spikespremot=np.array(spikespremot)[:,0]
-            specent=np.array(specent)
-            total = np.column_stack((specent,spikespremot,spikesdur))
-            os.chdir("Results")
-            np.savetxt("Data_Raw_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m) + ".txt", total, header="First column is the spectral value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
-            os.chdir("..")
-            #Here it will give you the possibility of computing the correlations and Bootstrapping
-            threshold = 3 #Standard Deviation threshold for Z score identification of outliers
-            total1=np.column_stack((specent,spikespremot))
-            total2=np.column_stack((specent,spikesdur))
-            z1 = np.abs(scipy.stats.zscore(total1))
-            z2 = np.abs(scipy.stats.zscore(total2))
-            total1=total1[(z1 < threshold).all(axis=1)]
-            total2=total2[(z2 < threshold).all(axis=1)]
-            a = total1[:,1] == 0
-            b = total2[:,1] == 0
-            a2.hist(specent)
-            a2.set_title("Distribution of the Raw Spectral Entropy")
-            a2.set_ylabel("Frequency")
-            a2.set_xlabel("Spectral Values")
-            #This will get the data for Spectral Entropy vs Premotor
-            if len(total1) < 3 or all(a) == True:
-                pass
-            else:
-                s1=scipy.stats.shapiro(total1[:,0])[1] #Spectral Entropy column
-                s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
-                homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
-                comb1=np.array([s1,s2,homo])
-                comb1=comb1>alpha
-                if  comb1.all() == True: #test for normality
-                    final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
-                    statistics+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total1[:,1],resample)
-                        statistics+=[[res[0],res[1]]]
-                else: 
-                    final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
-                    statistics+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total1[:,1],resample)
-                        statistics+=[[res[0],res[1]]]
-                os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
-                os.chdir("..")
-                f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
-                print(final)
-                a3.hist(np.array(statistics)[:,0])
-                a3.set_title("Bootstrap Premotor")
-                a3.set_xlabel("Correlation Values")
-            #This will get the data for Spectral Entropy vs During     
-            if len(total2) < 3 or all(b) == True:
-                pass
-            else:
-                s1=scipy.stats.shapiro(total2[:,0])[1] #Spectral Entropy column
-                s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
-                homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
-                comb1=np.array([s1,s2,homo])
-                comb1=comb1>alpha
-                if  comb1.all() == True: #test for normality
-                    final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
-                    statistics2+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total2[:,1],resample)
-                        statistics2+=[[res[0],res[1]]]
-                else: 
-                    final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
-                    statistics2+=[[final[0],final[1]]]
-                    # Bootstrapping
-                    for q in range(n_iterations):
-                        resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
-                        res=scipy.stats.spearmanr(total2[:,1],resample)
-                        statistics2+=[[res[0],res[1]]]
-                os.chdir("Results")
-                np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")   
-                os.chdir("..")
-                f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
-                print(final)
-                a4.hist(np.array(statistics2)[:,0])
-                a4.set_title("Bootstrap During")
-                a4.set_xlabel("Correlation Values")
-            os.chdir("Figures")
-            py.savefig("Corr_SpecEnt_syb"+ Syls[g] +"_tone"+ str(m)+".jpg")
-            py.close()
-            os.chdir("..")
-
-
-def gettones(songfile,motifile,fs, window_size):
-    finallist=sortsyls(motifile)  
-    song=np.load(songfile)
-    Syls=["A","B","C","D"]
-    
-    #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
-    for x in range(len(finallist)):        
-        fig, az = py.subplots()
-        used=finallist[x]
-        example=song[int(used[0][0]):int(used[0][1])]
-        abso=abs(example)
-        az.plot(example)
-        az.plot(abso)
-        rms=window_rms(np.ravel(example),window_size)
-        az.plot(rms)
-        az.set_title("This is syb "+ Syls[x] + ".  Click on graph to move on.")
-        py.waitforbuttonpress(10)
-        if input("Want to keep?").lower() == "n":
+        if Syls[g] in check:
             continue
-        else:            
-            numcuts=int(input("Number of chunks?"))
-            py.close()
+        else:
+            used=finallist[g]
+            means = np.loadtxt("..\\..\\"+y[g]).astype(int)
+            syb=song[int(used[0][0]):int(used[0][1])]
+            # Autocorrelation and Distribution 
+            for m in range(1,len(means)):
+                spikespremot=[]
+                spikesdur=[]
+                specent=[]
+                fig=py.figure(figsize=(18,15))
+                gs=py.GridSpec(1,3)
+                a2=fig.add_subplot(gs[0,0]) # First row, second column
+                a3=fig.add_subplot(gs[0,1])
+                a4=fig.add_subplot(gs[0,2])
+                statistics=[]
+                statistics2=[]
+                for n in range(len(used)):
+                    syb=song[int(used[n][0]):int(used[n][1])] #Will get the syllables for each rendition
+                    sybcut=syb[means[m-1]:means[m]] #Will apply the cuts for the syllable
+                    SE=complexity_entropy_spectral(sybcut[:,0],fs)
+                    beg=(used[n][0] + means[m-1])/fs
+                    end=(used[n][0] + means[m])/fs
+                    step1=spused[np.where(np.logical_and(spused >= beg-premot, spused <= beg) == True)]
+                    step2=spused[np.where(np.logical_and(spused >= beg, spused <= end) == True)]
+                    spikespremot+=[[np.size(step1)/(beg-(beg-premot))]]
+                    spikesdur+=[[np.size(step2)/(end-beg)]]
+                    specent+=[[SE]]
+                fig.suptitle("Syllable " + Syls[g] + " Tone " + str(m))
+                spikesdur=np.array(spikesdur)[:,0]
+                spikespremot=np.array(spikespremot)[:,0]
+                specent=np.array(specent)
+                total = np.column_stack((specent,spikespremot,spikesdur))
+                os.chdir("Results")
+                np.savetxt("Data_Raw_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m) + ".txt", total, header="First column is the spectral value, second is the number of spikes inside premotor window, third is the number of spikes inside 'during' window.")
+                os.chdir("..")
+                #Here it will give you the possibility of computing the correlations and Bootstrapping
+                threshold = 3 #Standard Deviation threshold for Z score identification of outliers
+                total1=np.column_stack((specent,spikespremot))
+                total2=np.column_stack((specent,spikesdur))
+                z1 = np.abs(scipy.stats.zscore(total1))
+                z2 = np.abs(scipy.stats.zscore(total2))
+                total1=total1[(z1 < threshold).all(axis=1)]
+                total2=total2[(z2 < threshold).all(axis=1)]
+                a = total1[:,1] == 0
+                b = total2[:,1] == 0
+                a2.hist(specent)
+                a2.set_title("Distribution of the Raw Spectral Entropy")
+                a2.set_ylabel("Frequency")
+                a2.set_xlabel("Spectral Values")
+                #This will get the data for Spectral Entropy vs Premotor
+                if len(total1) < 3 or all(a) == True:
+                    pass
+                else:
+                    s1=scipy.stats.shapiro(total1[:,0])[1] #Spectral Entropy column
+                    s2=scipy.stats.shapiro(total1[:,1])[1] #Premot Column
+                    homo=scipy.stats.levene(total1[:,0],total[:,1])[1]
+                    comb1=np.array([s1,s2,homo])
+                    comb1=comb1>alpha
+                    if  comb1.all() == True: #test for normality
+                        final=scipy.stats.pearsonr(total1[:,0],total1[:,1]) #if this is used, outcome will have no clear name on it
+                        statistics+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total1[:,1],resample)
+                            statistics+=[[res[0],res[1]]]
+                    else: 
+                        final=scipy.stats.spearmanr(total1[:,0],total1[:,1]) #if this is used, outcome will have the name spearman on it
+                        statistics+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total1[:,0], len(total1[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total1[:,1],resample)
+                            statistics+=[[res[0],res[1]]]
+                    os.chdir("Results")
+                    np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_Premotor.txt", statistics, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")
+                    os.chdir("..")
+                    f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_Premotor:" + str(final) + "\n")
+                    print(final)
+                    a3.hist(np.array(statistics)[:,0])
+                    a3.set_title("Bootstrap Premotor")
+                    a3.set_xlabel("Correlation Values")
+                #This will get the data for Spectral Entropy vs During     
+                if len(total2) < 3 or all(b) == True:
+                    pass
+                else:
+                    s1=scipy.stats.shapiro(total2[:,0])[1] #Spectral Entropy column
+                    s2=scipy.stats.shapiro(total2[:,1])[1] #During Column
+                    homo=scipy.stats.levene(total2[:,0],total2[:,1])[1]
+                    comb1=np.array([s1,s2,homo])
+                    comb1=comb1>alpha
+                    if  comb1.all() == True: #test for normality
+                        final=scipy.stats.pearsonr(total2[:,0],total2[:,1]) #if this is used, outcome will have no clear name on it
+                        statistics2+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total2[:,1],resample)
+                            statistics2+=[[res[0],res[1]]]
+                    else: 
+                        final=scipy.stats.spearmanr(total2[:,0],total2[:,1]) #if this is used, outcome will have the name spearman on it
+                        statistics2+=[[final[0],final[1]]]
+                        # Bootstrapping
+                        for q in range(n_iterations):
+                            resample=np.random.choice(total2[:,0], len(total2[:,0]), replace=True)
+                            res=scipy.stats.spearmanr(total2[:,1],resample)
+                            statistics2+=[[res[0],res[1]]]
+                    os.chdir("Results")
+                    np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")   
+                    os.chdir("..")
+                    f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
+                    print(final)
+                    a4.hist(np.array(statistics2)[:,0])
+                    a4.set_title("Bootstrap During")
+                    a4.set_xlabel("Correlation Values")
+                os.chdir("Figures")
+                py.savefig("Corr_SpecEnt_syb"+ Syls[g] +"_tone"+ str(m)+".jpg")
+                py.close()
+                os.chdir("..")
+    
+    
+    def gettones(songfile,motifile,fs, window_size):
+        finallist=sortsyls(motifile)  
+        song=np.load(songfile)
+        Syls=["A","B","C","D"]
         
-        # Will provide you 4 random exmaples of syllables to stablish the cutting points
-        coords2=[]
-        for j in range(4):           
-           j=random.randint(0,len(used)-1)
-           fig, ax = py.subplots()
-           syb=song[int(used[j][0]):int(used[j][1])]
-           abso=abs(syb)
-           ax.plot(abso)
-           rms=window_rms(np.ravel(syb),window_size)
-           ax.plot(rms)
-           py.waitforbuttonpress(10)
-           while True:
-               coords = []
-               while len(coords) < numcuts+1:
-                   tellme("Select the points to cut with mouse")
-                   coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
-               scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
-               tellme("Happy? Key click for yes, mouse click for no")
-               if py.waitforbuttonpress():
-                   break
-               else:
-                   scat.remove()
-           py.close()
-           coords2=np.append(coords2,coords[:,0])
-        
-        #Will keep the mean coordinates for the cuts
-        coords2.sort()
-        coords2=np.split(coords2,numcuts+1)
-        means=[]
-        for k in range(len(coords2)):
-            means+=[int(np.mean(coords2[k]))]
-        np.savetxt("../Mean"+Syls[x]+".txt", means) 
-        # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
-        py.figure()
-        py.plot(syb)
-        for l in range(1,len(means)):
-            py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])
-        py.savefig("../Cut"+ Syls[x]+".jpg")
+        #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
+        for x in range(len(finallist)):        
+            fig, az = py.subplots()
+            used=finallist[x]
+            example=song[int(used[0][0]):int(used[0][1])]
+            abso=abs(example)
+            az.plot(example)
+            az.plot(abso)
+            rms=window_rms(np.ravel(example),window_size)
+            az.plot(rms)
+            az.set_title("This is syb "+ Syls[x] + ".  Click on graph to move on.")
+            py.waitforbuttonpress(10)
+            if input("Want to keep?").lower() == "n":
+                continue
+            else:            
+                numcuts=int(input("Number of chunks?"))
+                py.close()
+            
+            # Will provide you 4 random exmaples of syllables to stablish the cutting points
+            coords2=[]
+            for j in range(4):           
+               j=random.randint(0,len(used)-1)
+               fig, ax = py.subplots()
+               syb=song[int(used[j][0]):int(used[j][1])]
+               abso=abs(syb)
+               ax.plot(abso)
+               rms=window_rms(np.ravel(syb),window_size)
+               ax.plot(rms)
+               py.waitforbuttonpress(10)
+               while True:
+                   coords = []
+                   while len(coords) < numcuts+1:
+                       tellme("Select the points to cut with mouse")
+                       coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
+                   scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
+                   tellme("Happy? Key click for yes, mouse click for no")
+                   if py.waitforbuttonpress():
+                       break
+                   else:
+                       scat.remove()
+               py.close()
+               coords2=np.append(coords2,coords[:,0])
+            
+            #Will keep the mean coordinates for the cuts
+            coords2.sort()
+            coords2=np.split(coords2,numcuts+1)
+            means=[]
+            for k in range(len(coords2)):
+                means+=[int(np.mean(coords2[k]))]
+            np.savetxt("../Mean"+Syls[x]+".txt", means) 
+            # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
+            py.figure()
+            py.plot(syb)
+            for l in range(1,len(means)):
+                py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])
+            py.savefig("../Cut"+ Syls[x]+".jpg")
 
 def ISI(spikefile):
     spikes=np.loadtxt(spikefile)
