@@ -35,6 +35,7 @@ import scipy.fftpack
 import scipy.interpolate
 import random
 from statsmodels.tsa.stattools import acf
+from matplotlib.ticker import FormatStrFormatter
 
 #############################################################################################################################
 # This block includes some functions that will be used several times in the code, but will not be individually documented:  #
@@ -474,93 +475,102 @@ def spectrogram(songfile, beg, end, fs):
 # basebeg is the start time for baseline computation
 #
 # basend is the end time for baseline computation    
-def psth(spikefile, motifile, fs, basebeg, basend, binwidth):        
+def psth(spikefile, motifile, fs, basebeg, basend, binwidth):     
     sybs=["A","B","C","D","E"]
     finallist=sortsyls(motifile)
     #Starts to plot the PSTH
     spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
-    adjust=0
-    adj2=0
     meandurall=0
-    py.fig, ax = py.subplots(2,1, figsize=(18,15))
-    x2=[]
-    y2=[]
     f = open("CheckSylsFreq.txt", "w+")
-    # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable. 
+    # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable.
+    py.fig, ax = py.subplots(2,len(finallist), figsize=(18,15), sharey=True)
     for i in range(len(finallist)):
-            used=finallist[i]/fs # sets which array from k will be used.
-            meandurall=np.mean(used[:,1]-used[:,0])
-            spikes1=[]
-            res=0
-            spikes=[]
-            basespk=[]
-            n0,n1=0,2
-            colors=["black", "blue", "green"]
-            for j in range(len(used)):
-                step1=[]
-                step2=[]
-                step3=[]
-                beg= used[j][0] #Will compute the beginning of the window
-                end= used[j][1] #Will compute the end of the window
-                step1=spused[np.where(np.logical_and(spused >= beg-shoulder, spused <= end+shoulder) == True)]-beg
-                step2=step1[np.where(np.logical_and(step1 >= 0, step1 <= end-beg) == True)]*(meandurall/(end-beg))
-                step3=step1[np.where(np.logical_and(step1 >= end-beg, step1 <= (end-beg)+shoulder) == True)]+(meandurall-(end-beg))
-                spikes1+=[step2+adjust,step3+adjust]
-                res=res+1
-                spikes2=spikes1
-                spikes3=np.concatenate(spikes2[n0:n1]) # Gets the step2 and step3 arrays for scatter
-                ax[1].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color=colors[i-1])
-                n0+=2
-                n1+=2
-                ax[1].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
-                ax[1].set_ylabel("Motif number")
-                ax[1].set_xlabel("Time [s]")
-                normfactor=len(used)*binwidth
-                ax[0].set_ylabel("Spikes/s")
-                bins=np.arange(0,(shoulder+meandurall)+binwidth, step=binwidth)
-                ax[0].set_xlim(-shoulder,(shoulder+meandurall)+binwidth+adjust)
-                ax[0].tick_params(
-                        axis="x",          # changes apply to the x-axis
-                        which="both",      # both major and minor ticks are affected
-                        bottom=False,      # ticks along the bottom edge are off
-                        top=False,         # ticks along the top edge are off
-                        labelbottom=False)
-                basecuts=np.random.choice(np.arange(basebeg,basend))
-                test2=spused[np.where(np.logical_and(spused >= basecuts, spused <= basecuts+meandurall) == True)]-basecuts
-                basespk+=[test2]
-            # Computation of baseline
-            b=np.sort(np.concatenate(basespk))
-            u,_= py.histogram(b, bins=np.arange(0,meandurall,binwidth)+binwidth, weights=np.ones(len(b))/normfactor)
-            basemean=np.mean(u)
-            stdbase=np.std(u)
-            axis=np.arange(meandurall/2,meandurall,binwidth)+adjust
-            ax[0].plot(axis,np.ones((len(axis),))*basemean, color = "g")
-            ax[0].plot(axis,np.ones((len(axis),))*(basemean+stdbase), color = "black")
-            ax[0].plot(axis,np.ones((len(axis),))*(basemean-stdbase), color = "black", ls="dashed")
-            # Computation of spikes
-            spikes=np.sort(np.concatenate(spikes2))
-            y1,x1= py.histogram(spikes, bins=bins+adjust, weights=np.ones(len(spikes))/normfactor)
-            print(y1)
-            if np.mean(y1) < 5:
-                f.writelines("Syllable " + str(sybs[i]) +" : " + str(np.mean(y1)) + "\n")
-            ax[0].axvline(x=(shoulder+meandurall)+adjust, color="grey", linestyle="--")
-            #ax[0].hist(spikes, bins=bins+adjust, color="b", edgecolor="black", linewidth=1, weights=np.ones(len(spikes))/normfactor, align="left", rwidth=binwidth*10)
-            x2+=[x1[:-1]+adj2]
-            y2+=[y1[:]]
-            adj2=binwidth/20
-            adjust=meandurall+shoulder+adjust+adj2
-    x4=np.sort(np.concatenate(x2))
-    y4=np.concatenate(y2)
-    ax[0].plot(x4,y4, color="red")        
-    #f = scipy.interpolate.interp1d(x4, y4, kind="linear")
-    #xnew=np.linspace(min(x4),max(x4), num=100)
-    #ax[0].plot(xnew,f(xnew), color="r")
-    py.fig.subplots_adjust(hspace=0)
-    black_line = mlines.Line2D([], [], color="black", label="+STD")
-    black_dashed  = mlines.Line2D([], [], color="black", label="+STD", linestyle="--")
-    green_line  = mlines.Line2D([], [], color="green", label="Mean")
-    ax[0].legend(handles=[black_line,black_dashed,green_line], loc="upper left")
+        if len(finallist) == 1:
+            shapes = (1,)
+            shapes2 = (0,)
+        else:
+            shapes=(1,i)
+            shapes2=(0,i)
+        used=finallist[i]/fs # sets which array from finallist will be used.
+        meandurall=np.mean(used[:,1]-used[:,0])
+        spikes1=[]
+        res=-1
+        spikes=[]
+        basespk=[]
+        n0,n1=0,3
+        for j in range(len(used)):
+            step1=[]
+            step2=[]
+            step3=[]
+            beg= used[j][0] #Will compute the beginning of the window
+            end= used[j][1] #Will compute the end of the window
+            step1=spused[np.where(np.logical_and(spused >= beg-shoulder, spused <= end+shoulder) == True)]-beg
+            stepsholneg=step1[step1<0]
+            step2=step1[np.where(np.logical_and(step1 >= 0, step1 <= end-beg) == True)]*(meandurall/(end-beg))
+            step3=step1[np.where(np.logical_and(step1 >= end-beg, step1 <= (end-beg)+shoulder) == True)]+(meandurall-(end-beg))
+            spikes1+=[stepsholneg,step2,step3]
+            res=res+1
+            spikes2=spikes1
+            spikes3=np.concatenate(spikes2[n0:n1]) # Gets the step2 and step3 arrays for scatter
+            ax[shapes].scatter(spikes3,res+np.zeros(len(spikes3)),marker="|", color="black")
+            n0+=3
+            n1+=3
+            bins=np.arange(-shoulder,meandurall+shoulder, step=binwidth)
+            ax[shapes].set_xlim(min(bins), max(bins))
+            ax[shapes].set_xticks([min(bins),0,meandurall,max(bins)])
+            normfactor=len(used)*binwidth
+            ax[shapes2].set_xlim(min(bins), max(bins))
+            ax[shapes2].set_title("Syllable " + sybs[i])
+            ax[shapes2].tick_params(
+                    axis="x",          # changes apply to the x-axis
+                    which="both",      # both major and minor ticks are affected
+                    bottom=False,      # ticks along the bottom edge are off
+                    top=False,         # ticks along the top edge are off
+                    labelbottom=False)
+            basecuts=np.random.choice(np.arange(basebeg,basend))
+            test2=spused[np.where(np.logical_and(spused >= basecuts, spused <= basecuts+meandurall) == True)]-basecuts
+            basespk+=[test2]
+        # Computation of baseline
+        b=np.sort(np.concatenate(basespk))
+        u,_= py.histogram(b, bins=np.arange(0,meandurall+binwidth,binwidth), weights=np.ones(len(b))/normfactor)
+        basemean=np.mean(u)
+        stdbase=np.std(u)
+        axis=np.arange(meandurall/3,meandurall*2/3,binwidth)
+        ax[shapes2].plot(axis,np.ones((len(axis),))*basemean, color = "g")
+        ax[shapes2].plot(axis,np.ones((len(axis),))*(basemean+stdbase), color = "black")
+        ax[shapes2].plot(axis,np.ones((len(axis),))*(basemean-stdbase), color = "black", ls="dashed")
+        # Computation of spikes
+        spikes=np.sort(np.concatenate(spikes2))
+        y1,x1= py.histogram(spikes, bins=bins, weights=np.ones(len(spikes))/normfactor)
+        if np.mean(y1) < 5:
+            f.writelines("Syllable " + str(sybs[i]) +" : " + str(np.mean(y1)) + "\n")
+        ax[shapes].axvline(x=0, color="grey", linestyle="--")
+        ax[shapes].axvline(x=meandurall, color="grey", linestyle="--")
+        #ax[shapes2].hist(spikes, bins=bins, color="b", edgecolor="black", weights=np.ones(len(spikes))/normfactor)
+        #ax[0].plot(x1[:-1]+binwidth/2,y1, color="red")
+        x2=np.delete(x1,-2)
+        x2[1:-1]=x2[1:-1]+binwidth/2
+        inter = scipy.interpolate.interp1d(x2, y1, kind="linear")
+        xnew=np.linspace(min(x2),max(x2), num=100)
+        ax[shapes2].plot(xnew,inter(xnew), color="red")
+        py.fig.subplots_adjust(hspace=0)
+        black_line = mlines.Line2D([], [], color="black", label="+STD")
+        black_dashed  = mlines.Line2D([], [], color="black", label="+STD", linestyle="--")
+        green_line  = mlines.Line2D([], [], color="green", label="Mean")
+        ax[shapes2].legend(handles=[black_line,black_dashed,green_line], loc="upper left", prop={'size': 6})
+        ax[shapes].xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    if len(finallist) == 1:
+        ax[0].set_ylabel("Spikes/Sec")
+        ax[1].set_ylabel("Motif number")
+    else:
+        ax[0,0].set_ylabel("Spikes/Sec")
+        ax[1,0].set_ylabel("Motif number")
+    wind=py.get_current_fig_manager()
+    wind.window.showMaximized()
+    py.fig.subplots_adjust(top=0.957, bottom=0.072, left=0.032, right=0.984, hspace=0.0, wspace=0.109)
+    #py.fig.tight_layout()
+    py.fig.text(0.5, 0.02, "Time(seconds)", va="center", ha="center")
     f.close()
     
 
@@ -1283,7 +1293,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
                             res=scipy.stats.spearmanr(total2[:,1],resample)
                             statistics2+=[[res[0],res[1]]]
                     os.chdir("Results")
-                    np.savetxt("Data_Boot_Corr_SpectEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")   
+                    np.savetxt("Data_Boot_Corr_SpecEnt_Result_Syb" + Syls[g] + "_tone_" + str(m)+ "_During.txt", statistics2, header="First column is the correlation value, second is the p value. First line is the original correlation, all below are the bootstrapped correlations.")   
                     os.chdir("..")
                     f.writelines("Syllable " + Syls[g] + "_tone_" + str(m)+ "_During:" + str(final) + "\n")
                     print(final)
