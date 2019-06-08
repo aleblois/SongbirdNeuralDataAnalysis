@@ -11,8 +11,8 @@ import glob
 import pylab as py
 from scipy import stats 
 
-which='Data_Boot_Corr_Pitch'
-which2='During'
+which='Data_Boot_Corr_Duration'
+which2='SybD'
 n_iterations=1000
 
 current_dir = os.getcwd()
@@ -46,18 +46,19 @@ for item in range(len(listsubdirs)):
 bol=total[:,1:]<0.05
 print("Total of <0.05: " + str(np.sum(np.size(np.where(bol==True)))) + " out of " + str(bol.size))
 print("In first row: " + str(np.sum(np.size(np.where(bol[0,:]==True)))) + " out of " + str(bol[0,:].size))
-np.savetxt("boot"+which+which2+".txt", total[:,1:], header="Total of <0.05: " + str(np.sum(np.size(np.where(bol==True)))) + " out of " + str(bol.size))
+np.savetxt("boot"+which+which2+".csv", total[:,1:], delimiter=',', fmt='%s')
 
 cases=np.array([])
 for row in range(len(bol)):
-    cases=np.append(cases,(np.sum(np.size(np.where(bol[row,:]==True)))/len(bol[row,:]))*100)
+    cases=np.append(cases,np.sum(np.size(np.where(bol[row,:]==True))))
+
     
-py.hist(cases, density=True)
-xt = py.xticks()[0]  
+py.hist(cases, bins=np.arange(min(cases), max(cases)+1, 1), density=True)
+xt = np.arange(min(cases), max(cases)+1, 1)  
 xmin, xmax = min(xt), max(xt)  
 lnspc = np.linspace(xmin, xmax, len(cases))
 m, s = stats.norm.fit(cases) # get mean and standard deviation  
 pdf_g = stats.norm.pdf(lnspc, m, s) # now get theoretical values in our interval  
 py.plot(lnspc, pdf_g, label="Norm") # plot it
-py.xlabel("Significant values per case in %")
+py.xlabel("Significant values per case")
         
