@@ -143,8 +143,8 @@ def getEnvelope(inputSignal, window_size):
 
     return outputSignal
 
-def jumpsyl():
-    with open("..\\CheckSylsFreq.txt", "r") as datafile:
+def jumpsyl(spikefile2):
+    with open("..\\CheckSylsFreq"+spikefile2+".txt", "r") as datafile:
         fich=datafile.read().split()[1::4]    
     return fich
     
@@ -482,9 +482,9 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
     spused=np.loadtxt(spikefile)
     shoulder= 0.05 #50 ms
     meandurall=0
-    f = open("CheckSylsFreq.txt", "w+")
+    f = open("CheckSylsFreq"+spikefile[:-4]+".txt", "w+")
     # This part will result in an iteration through all the syllables, and then through all the motifs inside each syllable.
-    py.fig, ax = py.subplots(2,len(finallist), figsize=(18,15), sharey=True)
+    py.fig, ax = py.subplots(2,len(finallist), figsize=(18,15), sharey=False)
     for i in range(len(finallist)):
         if len(finallist) == 1:
             shapes = (1,)
@@ -566,6 +566,18 @@ def psth(spikefile, motifile, fs, basebeg, basend, binwidth):
     else:
         ax[0,0].set_ylabel("Spikes/Sec")
         ax[1,0].set_ylabel("Motif number")
+        values = np.array([])
+        values2 = np.array([])
+        top = np.array([])
+        top2 = np.array([])
+        for lim in range(len(finallist)):
+            values = np.array(ax[0,lim].get_ylim())
+            values2 = np.array(ax[1,lim].get_ylim())
+            top = np.sort(np.append(top, values))
+            top2 = np.sort(np.append(top2, values2))
+        for limreal in range(len(finallist)):
+            ax[0,limreal].set_ylim(0,max(top))
+            ax[1,limreal].set_ylim(min(top2),max(top2))        
     wind=py.get_current_fig_manager()
     wind.window.showMaximized()
     py.fig.subplots_adjust(top=0.957, bottom=0.072, left=0.032, right=0.984, hspace=0.0, wspace=0.109)
@@ -596,7 +608,7 @@ def corrduration(spikefile, motifile, n_iterations,fs, alpha):
     finallist=sortsyls(motifile)    
     #Starts to compute correlations and save the data into txt file (in case the user wants to use it in another software)
     spused=np.loadtxt(spikefile)
-    check=jumpsyl()
+    check=jumpsyl(spikefile[3:-4])
     final=[]
     f = open("SummaryDuration.txt", "w+")
     for i in range(len(finallist)):
@@ -756,7 +768,7 @@ def corrpitch(songfile, motifile, lags, window_size,fs,spikefile, n_iterations, 
     fichier = open("SummaryCorrPitch.txt", "w+")
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
-    check=jumpsyl()
+    check=jumpsyl(spikefile[3:-4])
     for obj in range(len(finallist)):
         if Syls[obj] in check:
             continue
@@ -964,7 +976,7 @@ def corramplitude(songfile, motifile, fs, spikefile, window_size, n_iterations, 
     f = open("SummaryCorrAmp.txt", "w+")
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
-    check=jumpsyl()
+    check=jumpsyl(spikefile[3:-4])
     for g in range(len(finallist)):
         if Syls[g] in check:
             continue
@@ -1181,7 +1193,7 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
     f = open("SummaryCorrSpecEnt.txt", "w+")
     y=["MeanA.txt","MeanB.txt","MeanC.txt","MeanD.txt"]
     Syls=["A","B","C","D"]
-    check=jumpsyl()  
+    check=jumpsyl(spikefile[3:-4])  
     for g in range(len(finallist)):
         if Syls[g] in check:
             continue
