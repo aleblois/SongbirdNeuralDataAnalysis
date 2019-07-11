@@ -11,8 +11,8 @@ import glob
 import pylab as py
 from scipy import stats 
 
-which='Data_Boot_Corr_Duration'
-which2='SybD'
+which='Data_Boot_Corr_Amplitude_Result_'
+which2='SybA'
 n_iterations=1000
 
 current_dir = os.getcwd()
@@ -53,12 +53,12 @@ for row in range(len(bol)):
     cases=np.append(cases,np.sum(np.size(np.where(bol[row,:]==True))))
 
     
-py.hist(cases, bins=np.arange(min(cases), max(cases)+1, 1), density=True)
-xt = np.arange(min(cases), max(cases)+1, 1)  
+py.hist(cases, bins=np.arange(min(cases), max(cases)+2, 1), density=True)
+xt = np.arange(min(cases)-2, max(cases)+2, 1)  
 xmin, xmax = min(xt), max(xt)  
 lnspc = np.linspace(xmin, xmax, len(cases))
 m, s = stats.norm.fit(cases) # get mean and standard deviation  
 pdf_g = stats.norm.pdf(lnspc, m, s) # now get theoretical values in our interval  
-py.plot(lnspc, pdf_g, label="Norm") # plot it
+py.plot(lnspc, pdf_g, label="Norm", color="black", linestyle="dashed") # plot it
 py.xlabel("Significant values per case")
         
