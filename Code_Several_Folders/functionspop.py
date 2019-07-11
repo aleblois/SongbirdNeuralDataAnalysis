@@ -70,7 +70,7 @@ def sortsyls(motifile):
     k=[arra,arrb,arrc,arrd,arre]
     finallist=[]
     for i in k:
-        print(i.size)
+        #print(i.size)
         if i.size != 0:
             finallist+=[i]
         else:
@@ -1318,67 +1318,67 @@ def corrspectral(songfile, motifile, fs, spikefile, window_size, n_iterations, a
                 os.chdir("..")
     
     
-    def gettones(songfile,motifile,fs, window_size):
-        finallist=sortsyls(motifile)  
-        song=np.load(songfile)
-        Syls=["A","B","C","D"]
+def gettones(songfile,motifile,fs, window_size):
+    finallist=sortsyls(motifile)  
+    song=np.load(songfile)
+    Syls=["A","B","C","D"]
+    
+    #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
+    for x in range(len(finallist)):        
+        fig, az = py.subplots()
+        used=finallist[x]
+        example=song[int(used[0][0]):int(used[0][1])]
+        abso=abs(example)
+        az.plot(example)
+        az.plot(abso)
+        rms=window_rms(np.ravel(example),window_size)
+        az.plot(rms)
+        az.set_title("This is syb "+ Syls[x] + ".  Click on graph to move on.")
+        py.waitforbuttonpress(10)
+        if input("Want to keep?").lower() == "n":
+            continue
+        else:            
+            numcuts=int(input("Number of chunks?"))
+            py.close()
         
-        #Will plot an exmaple of the syllable for you to get an idea of the number of chunks
-        for x in range(len(finallist)):        
-            fig, az = py.subplots()
-            used=finallist[x]
-            example=song[int(used[0][0]):int(used[0][1])]
-            abso=abs(example)
-            az.plot(example)
-            az.plot(abso)
-            rms=window_rms(np.ravel(example),window_size)
-            az.plot(rms)
-            az.set_title("This is syb "+ Syls[x] + ".  Click on graph to move on.")
-            py.waitforbuttonpress(10)
-            if input("Want to keep?").lower() == "n":
-                continue
-            else:            
-                numcuts=int(input("Number of chunks?"))
-                py.close()
-            
-            # Will provide you 4 random exmaples of syllables to stablish the cutting points
-            coords2=[]
-            for j in range(4):           
-               j=random.randint(0,len(used)-1)
-               fig, ax = py.subplots()
-               syb=song[int(used[j][0]):int(used[j][1])]
-               abso=abs(syb)
-               ax.plot(abso)
-               rms=window_rms(np.ravel(syb),window_size)
-               ax.plot(rms)
-               py.waitforbuttonpress(10)
-               while True:
-                   coords = []
-                   while len(coords) < numcuts+1:
-                       tellme("Select the points to cut with mouse")
-                       coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
-                   scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
-                   tellme("Happy? Key click for yes, mouse click for no")
-                   if py.waitforbuttonpress():
-                       break
-                   else:
-                       scat.remove()
-               py.close()
-               coords2=np.append(coords2,coords[:,0])
-            
-            #Will keep the mean coordinates for the cuts
-            coords2.sort()
-            coords2=np.split(coords2,numcuts+1)
-            means=[]
-            for k in range(len(coords2)):
-                means+=[int(np.mean(coords2[k]))]
-            np.savetxt("../Mean"+Syls[x]+".txt", means) 
-            # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
-            py.figure()
-            py.plot(syb)
-            for l in range(1,len(means)):
-                py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])
-            py.savefig("../Cut"+ Syls[x]+".jpg")
+        # Will provide you 4 random exmaples of syllables to stablish the cutting points
+        coords2=[]
+        for j in range(4):           
+           j=random.randint(0,len(used)-1)
+           fig, ax = py.subplots()
+           syb=song[int(used[j][0]):int(used[j][1])]
+           abso=abs(syb)
+           ax.plot(abso)
+           rms=window_rms(np.ravel(syb),window_size)
+           ax.plot(rms)
+           py.waitforbuttonpress(10)
+           while True:
+               coords = []
+               while len(coords) < numcuts+1:
+                   tellme("Select the points to cut with mouse")
+                   coords = np.asarray(py.ginput(numcuts+1, timeout=-1, show_clicks=True))
+               scat = py.scatter(coords[:,0],coords[:,1], s=50, marker="X", zorder=10, c="r")    
+               tellme("Happy? Key click for yes, mouse click for no")
+               if py.waitforbuttonpress():
+                   break
+               else:
+                   scat.remove()
+           py.close()
+           coords2=np.append(coords2,coords[:,0])
+        
+        #Will keep the mean coordinates for the cuts
+        coords2.sort()
+        coords2=np.split(coords2,numcuts+1)
+        means=[]
+        for k in range(len(coords2)):
+            means+=[int(np.mean(coords2[k]))]
+        np.savetxt("../Mean"+Syls[x]+".txt", means) 
+        # Will plot how the syllables will be cut according to the avarage of the coordinates clicked before by the user    
+        py.figure()
+        py.plot(syb)
+        for l in range(1,len(means)):
+            py.plot(np.arange(means[l-1],means[l-1]+len(syb[means[l-1]:means[l]])),syb[means[l-1]:means[l]])
+        py.savefig("../Cut"+ Syls[x]+".jpg")
 
 def ISI(spikefile):
     spikes=np.loadtxt(spikefile)
